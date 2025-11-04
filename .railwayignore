@@ -51,6 +51,9 @@ generate_beta_code.sh
 # Docker compose (not needed for Railway)
 docker-compose.yml
 
+# Railway config (configure via UI instead)
+railway.json
+
 # Git
 .git/
 .gitignore

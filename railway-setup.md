@@ -26,11 +26,13 @@ This guide walks you through deploying NOFX to Railway using the two-service arc
 
 1. In your Railway project, click "New Service"
 2. Select "GitHub Repo" and choose your repository
-3. Railway will auto-detect the Dockerfile
+3. Railway may auto-detect a Dockerfile - **you need to change it**
 4. Configure the service:
    - **Name**: `nofx-backend` (or your preferred name)
-   - **Dockerfile Path**: `docker/Dockerfile.backend`
-   - **Root Directory**: `/` (project root)
+   - Go to **Settings** → **Build**
+   - **Dockerfile Path**: Set to `docker/Dockerfile.backend`
+   - **Root Directory**: `/` (project root) - leave as default
+   - **Important**: Make sure the Dockerfile path is explicitly set to `docker/Dockerfile.backend`
 
 ### Backend Environment Variables
 
@@ -66,10 +68,13 @@ This volume will persist:
 
 1. In your Railway project, click "New Service" again
 2. Select "GitHub Repo" and choose the same repository
-3. Configure the service:
+3. **Important**: Railway may try to use the backend Dockerfile - you must change it
+4. Configure the service:
    - **Name**: `nofx-frontend` (or your preferred name)
-   - **Dockerfile Path**: `docker/Dockerfile.frontend`
-   - **Root Directory**: `/` (project root)
+   - Go to **Settings** → **Build**
+   - **Dockerfile Path**: Set to `docker/Dockerfile.frontend` (this is critical!)
+   - **Root Directory**: `/` (project root) - leave as default
+   - **Important**: Double-check that the Dockerfile path shows `docker/Dockerfile.frontend` and not `docker/Dockerfile.backend`
 
 ### Frontend Environment Variables
 
