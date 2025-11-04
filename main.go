@@ -151,9 +151,32 @@ func main() {
 	fmt.Println()
 
 	// 初始化数据库配置
+	// Priority: DB_PATH env var > command line arg > Railway default > local default
 	dbPath := "config.db"
-	if len(os.Args) > 1 {
+	if dbPathEnv := os.Getenv("DB_PATH"); dbPathEnv != "" {
+		dbPath = dbPathEnv
+	} else if len(os.Args) > 1 {
 		dbPath = os.Args[1]
+	} else if _, err := os.Stat("/app/data"); err == nil {
+		// Railway volume mount detected, use /app/data/config.db
+		dbPath = "/app/data/config.db"
+	}
+
+	// Ensure data directory exists (for Railway volumes)
+	if dbPath == "/app/data/config.db" || strings.HasPrefix(dbPath, "/app/data/") {
+		if err := os.MkdirAll("/app/data", 0755); err != nil {
+			log.Printf("⚠️  创建数据目录失败: %v", err)
+		}
+	}
+
+	// Safety check: ensure database path is not a directory
+	if stat, err := os.Stat(dbPath); err == nil {
+		if stat.IsDir() {
+			log.Printf("⚠️  数据库路径是目录而不是文件: %s，尝试删除并重新创建", dbPath)
+			if err := os.RemoveAll(dbPath); err != nil {
+				log.Fatalf("❌ 无法删除目录 %s: %v", dbPath, err)
+			}
+		}
 	}
 
 	log.Printf("📋 初始化配置数据库: %s", dbPath)
@@ -288,8 +311,14 @@ func main() {
 	fmt.Println()
 
 	// 获取API服务器端口
+	// Priority: PORT env var (Railway) > config.json > 8080
 	apiPort := 8080 // 默认端口
-	if apiPortStr != "" {
+	if portEnv := os.Getenv("PORT"); portEnv != "" {
+		if port, err := strconv.Atoi(portEnv); err == nil {
+			apiPort = port
+			log.Printf("✓ 使用环境变量 PORT: %d", apiPort)
+		}
+	} else if apiPortStr != "" {
 		if port, err := strconv.Atoi(apiPortStr); err == nil {
 			apiPort = port
 		}

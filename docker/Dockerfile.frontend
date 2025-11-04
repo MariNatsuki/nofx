@@ -25,12 +25,33 @@ RUN npm run build
 # ──────────────────────────────────────────────────────────────
 FROM nginx:${NGINX_VERSION}
 
+# Install gettext for envsubst
+RUN apk add --no-cache gettext
+
+# Copy nginx config files
+# nginx.conf is used for Docker Compose (backward compatibility)
+# nginx.conf.template is used for Railway (when BACKEND_URL is set)
 COPY nginx/nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=builder /build/dist /usr/share/nginx/html
+
+# Create startup script to generate nginx.conf from template if BACKEND_URL is set (Railway mode)
+# Otherwise, use the existing nginx.conf (Docker Compose mode)
+RUN echo '#!/bin/sh' > /docker-entrypoint.d/20-generate-nginx-conf.sh && \
+    echo 'set -e' >> /docker-entrypoint.d/20-generate-nginx-conf.sh && \
+    echo 'if [ -n "$BACKEND_URL" ]; then' >> /docker-entrypoint.d/20-generate-nginx-conf.sh && \
+    echo '  echo "Railway mode: Generating nginx.conf with BACKEND_URL=$BACKEND_URL"' >> /docker-entrypoint.d/20-generate-nginx-conf.sh && \
+    echo '  envsubst '"'"'$$BACKEND_URL'"'"' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.d/20-generate-nginx-conf.sh && \
+    echo '  echo "Generated nginx.conf with BACKEND_URL=$BACKEND_URL"' >> /docker-entrypoint.d/20-generate-nginx-conf.sh && \
+    echo 'else' >> /docker-entrypoint.d/20-generate-nginx-conf.sh && \
+    echo '  echo "Docker Compose mode: Using existing nginx.conf (backend: http://nofx:8080)"' >> /docker-entrypoint.d/20-generate-nginx-conf.sh && \
+    echo 'fi' >> /docker-entrypoint.d/20-generate-nginx-conf.sh && \
+    chmod +x /docker-entrypoint.d/20-generate-nginx-conf.sh
 
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost/health || exit 1
 
+# Use default nginx entrypoint which runs scripts in /docker-entrypoint.d/
 CMD ["nginx", "-g", "daemon off;"]

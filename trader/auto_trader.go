@@ -9,6 +9,7 @@ import (
 	"nofx/market"
 	"nofx/mcp"
 	"nofx/pool"
+	"os"
 	"strings"
 	"time"
 )
@@ -189,7 +190,12 @@ func NewAutoTrader(config AutoTraderConfig) (*AutoTrader, error) {
 	}
 
 	// 初始化决策日志记录器（使用trader ID创建独立目录）
-	logDir := fmt.Sprintf("decision_logs/%s", config.ID)
+	// Use /app/data/decision_logs if in Railway, otherwise use local decision_logs
+	baseLogDir := "decision_logs"
+	if _, err := os.Stat("/app/data"); err == nil {
+		baseLogDir = "/app/data/decision_logs"
+	}
+	logDir := fmt.Sprintf("%s/%s", baseLogDir, config.ID)
 	decisionLogger := logger.NewDecisionLogger(logDir)
 
 	// 设置默认系统提示词模板

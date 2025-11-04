@@ -1,0 +1,57 @@
+# Railway ignore file - files to exclude from deployment
+
+# IDE files
+.idea/
+*.iml
+*.xml
+.claude/
+
+# Build artifacts (not needed in Railway)
+*.exe
+*.test
+*.out
+nofx-auto
+nofx_test
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.backup
+
+# Environment and config files (use Railway env vars instead)
+.env
+config.json
+config.db
+
+# Decision logs (will be in volume)
+decision_logs/
+coin_pool_cache/
+
+# Node.js (handled by Dockerfile)
+web/node_modules/
+node_modules/
+web/.vite/
+
+# Development files
+*.md
+!README.md
+docs/
+screenshots/
+scripts/
+pm2.config.js
+pm2.sh
+start.sh
+generate_beta_code.sh
+
+# Docker compose (not needed for Railway)
+docker-compose.yml
+
+# Git
+.git/
+.gitignore
+
