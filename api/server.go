@@ -82,7 +82,18 @@ func (s *Server) setupRoutes() {
 		api.GET("/supported-models", s.handleGetSupportedModels)
 		api.GET("/supported-exchanges", s.handleGetSupportedExchanges)
 
-		// 非管理员模式下的公开认证路由
+		// 系统配置（无需认证，用于前端判断是否管理员模式/注册是否开启）
+		api.GET("/config", s.handleGetSystemConfig)
+
+		// 系统提示词模板管理（无需认证）
+		api.GET("/prompt-templates", s.handleGetPromptTemplates)
+		api.GET("/prompt-templates/:name", s.handleGetPromptTemplate)
+
+		// 公开的收益率历史数据（无需认证，竞赛用，支持管理员和非管理员模式）
+		api.GET("/equity-history", s.handleEquityHistory)
+		api.POST("/equity-history-batch", s.handleEquityHistoryBatch)
+
+		// 仅在非管理员模式下的路由
 		if !auth.IsAdminMode() {
 			// 认证相关路由（无需认证）
 			api.POST("/register", s.handleRegister)
@@ -90,32 +101,18 @@ func (s *Server) setupRoutes() {
 			api.POST("/verify-otp", s.handleVerifyOTP)
 			api.POST("/complete-registration", s.handleCompleteRegistration)
 
-		}
-
-		// 系统配置（无需认证，用于前端判断是否管理员模式/注册是否开启）
-		api.GET("/config", s.handleGetSystemConfig)
-
-		// 公开的收益率历史数据（无需认证，竞赛用，支持管理员和非管理员模式）
-		api.GET("/equity-history", s.handleEquityHistory)
-		api.POST("/equity-history-batch", s.handleEquityHistoryBatch)
-
-		// 系统提示词模板管理（无需认证，支持管理员和非管理员模式）
-		api.GET("/prompt-templates", s.handleGetPromptTemplates)
-		api.GET("/prompt-templates/:name", s.handleGetPromptTemplate)
-
-		// 推荐系统（无需认证）
-		api.GET("/recommendations/current", s.handleGetRecommendations)
-		api.GET("/recommendations/history", s.handleGetRecommendationHistory)
-		api.GET("/recommendations/performance", s.handleGetRecommendationPerformance)
-		api.POST("/recommendations/refresh", s.handleRefreshRecommendations)
-
-		// 公开的竞赛数据（仅在非管理员模式下公开）
-		if !auth.IsAdminMode() {
+			// 公开的竞赛数据（仅在非管理员模式下公开）
 			api.GET("/traders", s.handlePublicTraderList)
 			api.GET("/competition", s.handlePublicCompetition)
 			api.GET("/top-traders", s.handleTopTraders)
 			api.GET("/traders/:id/public-config", s.handleGetPublicTraderConfig)
 		}
+
+		// 推荐系统（无需认证，支持管理员和非管理员模式）
+		api.GET("/recommendations/current", s.handleGetRecommendations)
+		api.GET("/recommendations/history", s.handleGetRecommendationHistory)
+		api.GET("/recommendations/performance", s.handleGetRecommendationPerformance)
+		api.POST("/recommendations/refresh", s.handleRefreshRecommendations)
 
 		// 需要认证的路由
 		protected := api.Group("/", s.authMiddleware())
@@ -1643,13 +1640,6 @@ func (s *Server) handleRegister(c *gin.Context) {
 	// 管理员模式下禁用注册
 	if auth.IsAdminMode() {
 		c.JSON(http.StatusForbidden, gin.H{"error": "管理员模式下禁用注册"})
-		return
-	}
-
-	// 若未开启注册，返回403
-	allowRegStr, _ := s.database.GetSystemConfig("allow_registration")
-	if allowRegStr == "false" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "注册已关闭"})
 		return
 	}
 
