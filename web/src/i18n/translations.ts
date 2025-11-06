@@ -778,19 +778,36 @@ export const translations = {
     basicInfo: '🤖 Basic Information',
     traderId: 'Trader ID',
     aiModel: 'AI Model',
+    aiModelLabel: 'AI Model',
     exchange: 'Exchange',
+    exchangeLabel: 'Exchange',
+    basicConfig: '🤖 Basic Configuration',
     tradingConfig: '⚖️ Trading Configuration',
     marginMode: 'Margin Mode',
     crossMargin: 'Cross Margin',
     isolatedMargin: 'Isolated Margin',
+    initialBalanceLabel: 'Initial Balance ($)',
     btcEthLeverageLabel: 'BTC/ETH Leverage',
     altcoinLeverageLabel: 'Altcoin Leverage',
     tradingSymbolsLabel: 'Trading Symbols',
+    tradingSymbolsPlaceholderWithHint:
+      'Trading Symbols (comma-separated, leave empty to use default)',
+    tradingSymbolsExample: 'Example: BTCUSDT,ETHUSDT,ADAUSDT',
+    clickToSelectCoins: 'Click to select coins:',
     useDefaultSymbols: 'Use default symbols',
     coinPoolSignal: 'Coin Pool Signal',
+    useCoinPoolSignalLabel: 'Use Coin Pool Signal',
     oiTopSignal: 'OI Top Signal',
+    useOiTopSignalLabel: 'Use OI Top Signal',
     tradingStrategyPrompt: '💬 Trading Strategy Prompt',
+    systemPromptTemplate: 'System Prompt Template',
+    systemPromptTemplateHelper:
+      'Select a preset trading strategy template (includes trading philosophy, risk control principles, etc.)',
+    templateDefault: 'Default (Conservative)',
+    templateAggressive: 'Aggressive',
     overrideDefaultPrompt: 'Override Default Prompt',
+    overrideDefaultPromptWarning:
+      'When enabled, will completely replace the default strategy',
     customPrompt: 'Custom Prompt',
     additionalPrompt: 'Additional Prompt',
     noCustomPromptSet: 'No custom prompt set, using system default strategy',
@@ -838,6 +855,27 @@ export const translations = {
     saving: 'Saving...',
     saveChanges: 'Save Changes',
     createTraderButton: 'Create Trader',
+
+    // Model Configuration
+    modelNameOptional: 'Model Name (Optional)',
+    modelNamePlaceholder: 'Example: deepseek-chat, qwen3-max, gpt-5',
+    modelNameHelper: 'Leave empty to use default model name',
+
+    // Binance Configuration Guide
+    binanceUserRequired: 'Binance Users Must Read:',
+    binanceApiType:
+      'Use "Spot & Futures Trading" API, do not use "Unified Account API"',
+    binanceReason:
+      'Reason: Unified Account API has different permission structure, which will cause order submission to fail',
+    binanceConfigSteps: 'Correct Configuration Steps:',
+    binanceStep1: 'Log in to Binance → Personal Center → API Management',
+    binanceStep2: 'Create API → Select "System Generated API Key"',
+    binanceStep3:
+      'Check "Spot & Futures Trading" (do not select unified account)',
+    binanceStep4: 'IP restriction: Select "No Restriction" or add server IP',
+    binanceMultiAssetWarning:
+      '💡 Multi-Asset Mode Users Note: If you have enabled multi-asset mode, it will force cross margin mode. It is recommended to disable multi-asset mode to support isolated margin trading.',
+    binanceOfficialTutorial: '📖 View Binance Official Tutorial ↗',
 
     // Duration Formatting
     hours: 'hours',
@@ -1576,19 +1614,34 @@ export const translations = {
     basicInfo: '🤖 基础信息',
     traderId: '交易员ID',
     aiModel: 'AI模型',
+    aiModelLabel: 'AI模型',
     exchange: '交易所',
+    exchangeLabel: '交易所',
+    basicConfig: '🤖 基础配置',
     tradingConfig: '⚖️ 交易配置',
     marginMode: '保证金模式',
     crossMargin: '全仓',
     isolatedMargin: '逐仓',
+    initialBalanceLabel: '初始余额 ($)',
     btcEthLeverageLabel: 'BTC/ETH 杠杆',
     altcoinLeverageLabel: '山寨币杠杆',
     tradingSymbolsLabel: '交易币种',
+    tradingSymbolsPlaceholderWithHint: '交易币种 (用逗号分隔，留空使用默认)',
+    tradingSymbolsExample: '例如: BTCUSDT,ETHUSDT,ADAUSDT',
+    clickToSelectCoins: '点击选择币种：',
     useDefaultSymbols: '使用默认币种',
     coinPoolSignal: 'Coin Pool 信号',
+    useCoinPoolSignalLabel: '使用 Coin Pool 信号',
     oiTopSignal: 'OI Top 信号',
+    useOiTopSignalLabel: '使用 OI Top 信号',
     tradingStrategyPrompt: '💬 交易策略提示词',
+    systemPromptTemplate: '系统提示词模板',
+    systemPromptTemplateHelper:
+      '选择预设的交易策略模板（包含交易哲学、风控原则等）',
+    templateDefault: 'Default (默认稳健)',
+    templateAggressive: 'Aggressive (激进)',
     overrideDefaultPrompt: '覆盖默认提示词',
+    overrideDefaultPromptWarning: '启用后将完全替换默认策略',
     customPrompt: '自定义提示词',
     additionalPrompt: '附加提示词',
     noCustomPromptSet: '未设置自定义提示词，使用系统默认策略',
@@ -1634,6 +1687,24 @@ export const translations = {
     saving: '保存中...',
     saveChanges: '保存修改',
     createTraderButton: '创建交易员',
+
+    // Model Configuration
+    modelNameOptional: 'Model Name (可选)',
+    modelNamePlaceholder: '例如: deepseek-chat, qwen3-max, gpt-5',
+    modelNameHelper: '留空使用默认模型名称',
+
+    // Binance Configuration Guide
+    binanceUserRequired: '币安用户必读：',
+    binanceApiType: '使用「现货与合约交易」API，不要用「统一账户 API」',
+    binanceReason: '原因：统一账户 API 权限结构不同，会导致订单提交失败',
+    binanceConfigSteps: '正确配置步骤：',
+    binanceStep1: '登录币安 → 个人中心 → API 管理',
+    binanceStep2: '创建 API → 选择「系统生成的 API 密钥」',
+    binanceStep3: '勾选「现货与合约交易」（不选统一账户）',
+    binanceStep4: 'IP 限制选「无限制」或添加服务器 IP',
+    binanceMultiAssetWarning:
+      '💡 多资产模式用户注意：如果您开启了多资产模式，将强制使用全仓模式。建议关闭多资产模式以支持逐仓交易。',
+    binanceOfficialTutorial: '📖 查看币安官方教程 ↗',
 
     // Duration Formatting
     hours: '小时',

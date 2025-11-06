@@ -294,7 +294,7 @@ export function TraderConfigModal({
           {/* Basic Info */}
           <div className="bg-[#0B0E11] border border-[#2B3139] rounded-lg p-5">
             <h3 className="text-lg font-semibold text-[#EAECEF] mb-5 flex items-center gap-2">
-              🤖 基础配置
+              {t('basicConfig', language)}
             </h3>
             <div className="space-y-4">
               <div>
@@ -314,7 +314,7 @@ export function TraderConfigModal({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-[#EAECEF] block mb-2">
-                    AI模型
+                    {t('aiModelLabel', language)}
                   </label>
                   <select
                     value={formData.ai_model}
@@ -332,7 +332,7 @@ export function TraderConfigModal({
                 </div>
                 <div>
                   <label className="text-sm text-[#EAECEF] block mb-2">
-                    交易所
+                    {t('exchangeLabel', language)}
                   </label>
                   <select
                     value={formData.exchange_id}
@@ -357,14 +357,14 @@ export function TraderConfigModal({
           {/* Trading Configuration */}
           <div className="bg-[#0B0E11] border border-[#2B3139] rounded-lg p-5">
             <h3 className="text-lg font-semibold text-[#EAECEF] mb-5 flex items-center gap-2">
-              ⚖️ 交易配置
+              {t('tradingConfig', language)}
             </h3>
             <div className="space-y-4">
               {/* 第一行：保证金模式和初始余额 */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-[#EAECEF] block mb-2">
-                    保证金模式
+                    {t('marginMode', language)}
                   </label>
                   <div className="flex gap-2">
                     <button
@@ -376,7 +376,7 @@ export function TraderConfigModal({
                           : 'bg-[#0B0E11] text-[#848E9C] border border-[#2B3139]'
                       }`}
                     >
-                      全仓
+                      {t('crossMargin', language)}
                     </button>
                     <button
                       type="button"
@@ -389,14 +389,14 @@ export function TraderConfigModal({
                           : 'bg-[#0B0E11] text-[#848E9C] border border-[#2B3139]'
                       }`}
                     >
-                      逐仓
+                      {t('isolatedMargin', language)}
                     </button>
                   </div>
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-sm text-[#EAECEF]">
-                      初始余额 ($)
+                      {t('initialBalanceLabel', language)}
                       {!isEditMode && (
                         <span className="text-[#F0B90B] ml-1">*</span>
                       )}
@@ -491,7 +491,7 @@ export function TraderConfigModal({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-[#EAECEF] block mb-2">
-                    BTC/ETH 杠杆
+                    {t('btcEthLeverageLabel', language)}
                   </label>
                   <input
                     type="number"
@@ -509,7 +509,7 @@ export function TraderConfigModal({
                 </div>
                 <div>
                   <label className="text-sm text-[#EAECEF] block mb-2">
-                    山寨币杠杆
+                    {t('altcoinLeverageLabel', language)}
                   </label>
                   <input
                     type="number"
@@ -531,7 +531,7 @@ export function TraderConfigModal({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm text-[#EAECEF]">
-                    交易币种 (用逗号分隔，留空使用默认)
+                    {t('tradingSymbolsPlaceholderWithHint', language)}
                   </label>
                   <button
                     type="button"
@@ -550,14 +550,14 @@ export function TraderConfigModal({
                     handleInputChange('trading_symbols', e.target.value)
                   }
                   className="w-full px-3 py-2 bg-[#0B0E11] border border-[#2B3139] rounded text-[#EAECEF] focus:border-[#F0B90B] focus:outline-none"
-                  placeholder="例如: BTCUSDT,ETHUSDT,ADAUSDT"
+                  placeholder={t('tradingSymbolsExample', language)}
                 />
 
                 {/* 币种选择器 */}
                 {showCoinSelector && (
                   <div className="mt-3 p-3 bg-[#0B0E11] border border-[#2B3139] rounded">
                     <div className="text-xs text-[#848E9C] mb-2">
-                      点击选择币种：
+                      {t('clickToSelectCoins', language)}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {availableCoins.map((coin) => (
@@ -584,7 +584,7 @@ export function TraderConfigModal({
           {/* Signal Sources */}
           <div className="bg-[#0B0E11] border border-[#2B3139] rounded-lg p-5">
             <h3 className="text-lg font-semibold text-[#EAECEF] mb-5 flex items-center gap-2">
-              📡 信号源配置
+              {t('signalSourceConfig', language)}
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center gap-3">
@@ -597,7 +597,7 @@ export function TraderConfigModal({
                   className="w-4 h-4"
                 />
                 <label className="text-sm text-[#EAECEF]">
-                  使用 Coin Pool 信号
+                  {t('useCoinPoolSignalLabel', language)}
                 </label>
               </div>
               <div className="flex items-center gap-3">
@@ -610,7 +610,7 @@ export function TraderConfigModal({
                   className="w-4 h-4"
                 />
                 <label className="text-sm text-[#EAECEF]">
-                  使用 OI Top 信号
+                  {t('useOiTopSignalLabel', language)}
                 </label>
               </div>
             </div>
@@ -619,13 +619,13 @@ export function TraderConfigModal({
           {/* Trading Prompt */}
           <div className="bg-[#0B0E11] border border-[#2B3139] rounded-lg p-5">
             <h3 className="text-lg font-semibold text-[#EAECEF] mb-5 flex items-center gap-2">
-              💬 交易策略提示词
+              {t('tradingStrategyPrompt', language)}
             </h3>
             <div className="space-y-4">
               {/* 系统提示词模板选择 */}
               <div>
                 <label className="text-sm text-[#EAECEF] block mb-2">
-                  系统提示词模板
+                  {t('systemPromptTemplate', language)}
                 </label>
                 <select
                   value={formData.system_prompt_template}
@@ -637,16 +637,16 @@ export function TraderConfigModal({
                   {promptTemplates.map((template) => (
                     <option key={template.name} value={template.name}>
                       {template.name === 'default'
-                        ? 'Default (默认稳健)'
+                        ? t('templateDefault', language)
                         : template.name === 'aggressive'
-                          ? 'Aggressive (激进)'
+                          ? t('templateAggressive', language)
                           : template.name.charAt(0).toUpperCase() +
                             template.name.slice(1)}
                     </option>
                   ))}
                 </select>
                 <p className="text-xs text-[#848E9C] mt-1">
-                  选择预设的交易策略模板（包含交易哲学、风控原则等）
+                  {t('systemPromptTemplateHelper', language)}
                 </p>
               </div>
 
@@ -659,7 +659,9 @@ export function TraderConfigModal({
                   }
                   className="w-4 h-4"
                 />
-                <label className="text-sm text-[#EAECEF]">覆盖默认提示词</label>
+                <label className="text-sm text-[#EAECEF]">
+                  {t('overrideDefaultPrompt', language)}
+                </label>
                 <span className="text-xs text-[#F0B90B] inline-flex items-center gap-1">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -675,7 +677,7 @@ export function TraderConfigModal({
                     <line x1="12" x2="12" y1="9" y2="13" />
                     <line x1="12" x2="12.01" y1="17" y2="17" />
                   </svg>{' '}
-                  启用后将完全替换默认策略
+                  {t('overrideDefaultPromptWarning', language)}
                 </span>
               </div>
               <div>

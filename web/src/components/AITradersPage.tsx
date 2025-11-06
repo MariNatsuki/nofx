@@ -1604,13 +1604,13 @@ function ModelConfigModal({
                   className="block text-sm font-semibold mb-2"
                   style={{ color: '#EAECEF' }}
                 >
-                  Model Name (可选)
+                  {t('modelNameOptional', language)}
                 </label>
                 <input
                   type="text"
                   value={modelName}
                   onChange={(e) => setModelName(e.target.value)}
-                  placeholder="例如: deepseek-chat, qwen3-max, gpt-5"
+                  placeholder={t('modelNamePlaceholder', language)}
                   className="w-full px-3 py-2 rounded"
                   style={{
                     background: '#0B0E11',
@@ -1619,7 +1619,7 @@ function ModelConfigModal({
                   }}
                 />
                 <div className="text-xs mt-1" style={{ color: '#848E9C' }}>
-                  留空使用默认模型名称
+                  {t('modelNameHelper', language)}
                 </div>
               </div>
 
@@ -1928,8 +1928,10 @@ function ExchangeConfigModal({
                               className="text-sm font-medium"
                               style={{ color: '#EAECEF' }}
                             >
-                              <strong>币安用户必读：</strong>
-                              使用「现货与合约交易」API，不要用「统一账户 API」
+                              <strong>
+                                {t('binanceUserRequired', language)}
+                              </strong>{' '}
+                              {t('binanceApiType', language)}
                             </span>
                           </div>
                           <span style={{ color: '#8b949e' }}>
@@ -1949,38 +1951,23 @@ function ExchangeConfigModal({
                             onClick={(e) => e.stopPropagation()}
                           >
                             <p className="mb-2" style={{ color: '#8b949e' }}>
-                              <strong>原因：</strong>统一账户 API
-                              权限结构不同，会导致订单提交失败
+                              <strong>{t('binanceReason', language)}</strong>
                             </p>
 
                             <p
                               className="font-semibold mb-1"
                               style={{ color: '#EAECEF' }}
                             >
-                              正确配置步骤：
+                              {t('binanceConfigSteps', language)}
                             </p>
                             <ol
                               className="list-decimal list-inside space-y-1 mb-3"
                               style={{ paddingLeft: '0.5rem' }}
                             >
-                              <li>
-                                登录币安 → 个人中心 → <strong>API 管理</strong>
-                              </li>
-                              <li>
-                                创建 API → 选择「
-                                <strong>系统生成的 API 密钥</strong>」
-                              </li>
-                              <li>
-                                勾选「<strong>现货与合约交易</strong>」（
-                                <span style={{ color: '#f85149' }}>
-                                  不选统一账户
-                                </span>
-                                ）
-                              </li>
-                              <li>
-                                IP 限制选「<strong>无限制</strong>」或添加服务器
-                                IP
-                              </li>
+                              <li>{t('binanceStep1', language)}</li>
+                              <li>{t('binanceStep2', language)}</li>
+                              <li>{t('binanceStep3', language)}</li>
+                              <li>{t('binanceStep4', language)}</li>
                             </ol>
 
                             <p
@@ -1990,8 +1977,7 @@ function ExchangeConfigModal({
                                 border: '1px solid #9e6a03',
                               }}
                             >
-                              💡 <strong>多资产模式用户注意：</strong>
-                              如果您开启了多资产模式，将强制使用全仓模式。建议关闭多资产模式以支持逐仓交易。
+                              {t('binanceMultiAssetWarning', language)}
                             </p>
 
                             <a
@@ -2001,7 +1987,7 @@ function ExchangeConfigModal({
                               className="inline-block text-sm hover:underline"
                               style={{ color: '#58a6ff' }}
                             >
-                              📖 查看币安官方教程 ↗
+                              {t('binanceOfficialTutorial', language)}
                             </a>
                           </div>
                         )}
