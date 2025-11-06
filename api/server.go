@@ -94,6 +94,10 @@ func (s *Server) setupRoutes() {
 		// 系统配置（无需认证，用于前端判断是否管理员模式/注册是否开启）
 		api.GET("/config", s.handleGetSystemConfig)
 
+		// 公开的收益率历史数据（无需认证，竞赛用，支持管理员和非管理员模式）
+		api.GET("/equity-history", s.handleEquityHistory)
+		api.POST("/equity-history-batch", s.handleEquityHistoryBatch)
+
 		// 系统提示词模板管理（仅在非管理员模式下公开）
 		if !auth.IsAdminMode() {
 			// 系统提示词模板管理（无需认证）
@@ -104,9 +108,6 @@ func (s *Server) setupRoutes() {
 			api.GET("/traders", s.handlePublicTraderList)
 			api.GET("/competition", s.handlePublicCompetition)
 			api.GET("/top-traders", s.handleTopTraders)
-			// 公开的收益率历史数据（无需认证，竞赛用，仅在非管理员模式下公开）
-			api.GET("/equity-history", s.handleEquityHistory)
-			api.POST("/equity-history-batch", s.handleEquityHistoryBatch)
 			api.GET("/traders/:id/public-config", s.handleGetPublicTraderConfig)
 		}
 
