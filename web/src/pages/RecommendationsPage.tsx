@@ -15,6 +15,7 @@ export default function RecommendationsPage() {
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [countdown, setCountdown] = useState(180) // 3 minutes
   const [loading, setLoading] = useState(false)
+  const [calculating, setCalculating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const loadRecommendations = async () => {
@@ -29,6 +30,22 @@ export default function RecommendationsPage() {
       setError('Failed to load recommendations. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const calculateRecommendations = async () => {
+    setCalculating(true)
+    setError(null)
+    try {
+      // Calculate recommendations for the current strategy
+      await api.calculateRecommendations(selectedStrategy, 10)
+      // After calculation, refresh from database
+      await loadRecommendations()
+    } catch (err) {
+      console.error('Failed to calculate recommendations:', err)
+      setError('Failed to calculate recommendations. Please try again.')
+    } finally {
+      setCalculating(false)
     }
   }
 
@@ -99,7 +116,7 @@ export default function RecommendationsPage() {
 
           <button
             onClick={loadRecommendations}
-            disabled={loading}
+            disabled={loading || calculating}
             className="px-4 py-2 rounded transition-all hover:scale-105 disabled:opacity-50 flex items-center gap-2"
             style={{
               background: loading
@@ -118,6 +135,31 @@ export default function RecommendationsPage() {
               <>
                 <RefreshCw className="w-4 h-4" />
                 {t('recommendations.refreshNow', language)}
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={calculateRecommendations}
+            disabled={loading || calculating}
+            className="px-4 py-2 rounded transition-all hover:scale-105 disabled:opacity-50 flex items-center gap-2"
+            style={{
+              background: calculating
+                ? '#1E2329'
+                : 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+              color: calculating ? '#848E9C' : '#FFFFFF',
+              border: calculating ? '1px solid #2B3139' : 'none',
+            }}
+          >
+            {calculating ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {t('common.loading', language)}
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4" />
+                Calculate Now
               </>
             )}
           </button>

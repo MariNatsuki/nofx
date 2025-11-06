@@ -20,13 +20,13 @@ type RecommendationService struct {
 }
 
 // NewRecommendationService creates a new recommendation service
-func NewRecommendationService(db *config.Database, strategies []string, btcETHLeverage, altcoinLeverage int) *RecommendationService {
+func NewRecommendationService(db *config.Database, strategies []string, btcETHLeverage, altcoinLeverage int, updateInterval time.Duration) *RecommendationService {
 	return &RecommendationService{
 		db:              db,
 		strategies:      strategies,
 		btcETHLeverage:  btcETHLeverage,
 		altcoinLeverage: altcoinLeverage,
-		updateInterval:  3 * time.Minute,
+		updateInterval:  updateInterval,
 		stopChan:        make(chan struct{}),
 	}
 }

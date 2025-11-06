@@ -28,7 +28,7 @@ func GenerateRecommendations(strategies []string, limit int, btcETHLeverage, alt
 	}
 
 	// 4. Analyze BTC direction (cache for 3 minutes)
-	btcDirection := analyzeBTCDirection()
+	btcDirection := AnalyzeBTCDirection()
 	log.Printf("📊 推荐引擎: BTC方向分析: %s", btcDirection)
 
 	// 5. Generate recommendations for each strategy separately

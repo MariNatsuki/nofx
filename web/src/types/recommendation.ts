@@ -21,4 +21,3 @@ export interface RecommendationResponse {
   updated_at: string
   btc_status: string
 }
-

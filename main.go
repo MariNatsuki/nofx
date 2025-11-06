@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -391,9 +392,26 @@ func main() {
 	}
 	
 	defaultStrategies := []string{"risk_first", "adaptive_relaxed"}
-	recommendationService := recommender.NewRecommendationService(database, defaultStrategies, btcETHLeverage, altcoinLeverage)
+	
+	// Parse refresh interval from environment variable
+	refreshInterval := 3 * time.Minute // Default: 3 minutes
+	if intervalStr := os.Getenv("RECOMMENDATION_REFRESH_INTERVAL"); intervalStr != "" {
+		// Try parsing as duration string (e.g., "3m", "180s")
+		if parsed, err := time.ParseDuration(intervalStr); err == nil {
+			refreshInterval = parsed
+		} else {
+			// Try parsing as integer minutes
+			if minutes, err := strconv.Atoi(intervalStr); err == nil && minutes > 0 {
+				refreshInterval = time.Duration(minutes) * time.Minute
+			} else {
+				log.Printf("⚠️  无效的 RECOMMENDATION_REFRESH_INTERVAL 值 '%s'，使用默认值 3 分钟", intervalStr)
+			}
+		}
+	}
+	
+	recommendationService := recommender.NewRecommendationService(database, defaultStrategies, btcETHLeverage, altcoinLeverage, refreshInterval)
 	go recommendationService.Start()
-	log.Printf("✓ 推荐服务已启动（每3分钟更新一次）")
+	log.Printf("✓ 推荐服务已启动（每 %v 更新一次）", refreshInterval)
 
 	// 设置优雅退出
 	sigChan := make(chan os.Signal, 1)

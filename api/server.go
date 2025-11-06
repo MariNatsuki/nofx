@@ -119,6 +119,7 @@ func (s *Server) setupRoutes() {
 		api.GET("/recommendations/history", s.handleGetRecommendationHistory)
 		api.GET("/recommendations/performance", s.handleGetRecommendationPerformance)
 		api.POST("/recommendations/refresh", s.handleRefreshRecommendations)
+		api.POST("/recommendations/calculate", s.handleCalculateRecommendations)
 
 		// 需要认证的路由
 		protected := api.Group("/", s.authMiddleware())
@@ -2199,7 +2200,7 @@ func (s *Server) getEquityHistoryForTraders(traderIDs []string) map[string]inter
 	return result
 }
 
-// handleGetRecommendations 获取当前推荐
+// handleGetRecommendations 获取当前推荐（从数据库读取）
 func (s *Server) handleGetRecommendations(c *gin.Context) {
 	// Get strategy from query param (accept single strategy, or default to first if multiple provided)
 	strategiesParam := c.DefaultQuery("strategy", "risk_first")
@@ -2212,25 +2213,139 @@ func (s *Server) handleGetRecommendations(c *gin.Context) {
 	
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	
-	// Get leverage settings from system config
-	btcETHLeverage := 5
-	altcoinLeverage := 5
-	if btcETHStr, err := s.database.GetSystemConfig("btc_eth_leverage"); err == nil {
-		if val, err := strconv.Atoi(btcETHStr); err == nil {
-			btcETHLeverage = val
-		}
+	// Query latest recommendations from database for the specified strategy
+	// The strategies field is stored as JSON array, so we need to check if it contains the strategy
+	query := `
+		SELECT symbol, coin_category, score, confidence, direction, strategies, reasoning,
+		       price_at_recommendation, leverage_suggested, technical_snapshot, created_at
+		FROM recommendations
+		WHERE strategies LIKE ?
+		ORDER BY created_at DESC
+		LIMIT ?
+	`
+	
+	// Search for strategy in JSON array format: ["strategy_name"] or ["strategy_name", ...]
+	strategyPattern := "%\"" + strategy + "\"%"
+	rows, err := s.database.Query(query, strategyPattern, limit*2) // Get more to filter properly
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to query recommendations: %v", err)})
+		return
 	}
-	if altcoinStr, err := s.database.GetSystemConfig("altcoin_leverage"); err == nil {
-		if val, err := strconv.Atoi(altcoinStr); err == nil {
-			altcoinLeverage = val
+	defer rows.Close()
+	
+	// Group recommendations by strategy and category
+	strategyRecs := make(map[string]recommender.StrategyRecommendations)
+	var maxCreatedAt time.Time
+	var btcStatus string
+	
+	majorCount := 0
+	altcoinCount := 0
+	
+	for rows.Next() {
+		var symbol, coinCategory, direction, strategiesJSON, reasoning, technicalSnapshot string
+		var score float64
+		var confidence, leverageSuggested int
+		var priceAtRec float64
+		var createdAt time.Time
+		
+		err := rows.Scan(&symbol, &coinCategory, &score, &confidence, &direction, &strategiesJSON,
+			&reasoning, &priceAtRec, &leverageSuggested, &technicalSnapshot, &createdAt)
+		if err != nil {
+			continue
+		}
+		
+		// Parse strategies JSON to verify it matches
+		var strategiesList []string
+		if err := json.Unmarshal([]byte(strategiesJSON), &strategiesList); err != nil {
+			continue
+		}
+		
+		// Check if this recommendation belongs to the requested strategy
+		found := false
+		for _, s := range strategiesList {
+			if s == strategy {
+				found = true
+				break
+			}
+		}
+		if !found {
+			continue
+		}
+		
+		// Parse technical snapshot to get BTC status
+		var technicalData recommender.TechnicalSnapshot
+		if err := json.Unmarshal([]byte(technicalSnapshot), &technicalData); err == nil {
+			if btcStatus == "" && technicalData.BTCDirection != "" {
+				btcStatus = technicalData.BTCDirection
+			}
+		}
+		
+		// Track latest created_at
+		if createdAt.After(maxCreatedAt) {
+			maxCreatedAt = createdAt
+		}
+		
+		// Initialize strategy map entry if needed
+		if _, exists := strategyRecs[strategy]; !exists {
+			strategyRecs[strategy] = recommender.StrategyRecommendations{
+				MajorCoins: []recommender.Recommendation{},
+				Altcoins:   []recommender.Recommendation{},
+			}
+		}
+		
+		// Create recommendation object
+		rec := recommender.Recommendation{
+			Symbol:            symbol,
+			Category:          recommender.CoinCategory(coinCategory),
+			Score:             score,
+			Confidence:        confidence,
+			Direction:         direction,
+			Strategy:          strategy,
+			Reasoning:         reasoning,
+			CurrentPrice:      priceAtRec,
+			SuggestedLeverage: leverageSuggested,
+			TechnicalData:     technicalData,
+			CreatedAt:         createdAt,
+		}
+		
+		// Add to appropriate category with limit
+		if coinCategory == "major" && majorCount < limit {
+			strategyRecs[strategy].MajorCoins = append(strategyRecs[strategy].MajorCoins, rec)
+			majorCount++
+		} else if coinCategory == "altcoin" && altcoinCount < limit {
+			strategyRecs[strategy].Altcoins = append(strategyRecs[strategy].Altcoins, rec)
+			altcoinCount++
+		}
+		
+		// Stop if we have enough recommendations
+		if majorCount >= limit && altcoinCount >= limit {
+			break
 		}
 	}
 	
-	// Generate recommendations for the single strategy
-	response, err := recommender.GenerateRecommendations([]string{strategy}, limit, btcETHLeverage, altcoinLeverage)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// If no BTC status found, use default
+	if btcStatus == "" {
+		btcStatus = recommender.AnalyzeBTCDirection()
+	}
+	
+	// If no recommendations found, return empty response
+	if len(strategyRecs) == 0 {
+		if maxCreatedAt.IsZero() {
+			maxCreatedAt = time.Now()
+		}
+		c.JSON(http.StatusOK, recommender.RecommendationResponse{
+			Strategies: strategyRecs,
+			UpdatedAt:  maxCreatedAt,
+			BTCStatus:  btcStatus,
+		})
 		return
+	}
+	
+	// Build response
+	response := recommender.RecommendationResponse{
+		Strategies: strategyRecs,
+		UpdatedAt:  maxCreatedAt,
+		BTCStatus:  btcStatus,
 	}
 	
 	c.JSON(http.StatusOK, response)
@@ -2353,7 +2468,7 @@ func (s *Server) handleGetRecommendationPerformance(c *gin.Context) {
 	c.JSON(http.StatusOK, performance)
 }
 
-// handleRefreshRecommendations 强制刷新推荐
+// handleRefreshRecommendations 刷新推荐（从数据库读取）
 func (s *Server) handleRefreshRecommendations(c *gin.Context) {
 	// Get strategies from body or use default
 	var body struct {
@@ -2373,6 +2488,162 @@ func (s *Server) handleRefreshRecommendations(c *gin.Context) {
 		body.Limit = 10
 	}
 	
+	// Query latest recommendations from database for all requested strategies
+	strategyRecs := make(map[string]recommender.StrategyRecommendations)
+	var maxCreatedAt time.Time
+	var btcStatus string
+	
+	for _, strategy := range body.Strategies {
+		query := `
+			SELECT symbol, coin_category, score, confidence, direction, strategies, reasoning,
+			       price_at_recommendation, leverage_suggested, technical_snapshot, created_at
+			FROM recommendations
+			WHERE strategies LIKE ?
+			ORDER BY created_at DESC
+			LIMIT ?
+		`
+		
+		strategyPattern := "%\"" + strategy + "\"%"
+		rows, err := s.database.Query(query, strategyPattern, body.Limit*2)
+		if err != nil {
+			continue
+		}
+		
+		majorCount := 0
+		altcoinCount := 0
+		
+		strategyRecs[strategy] = recommender.StrategyRecommendations{
+			MajorCoins: []recommender.Recommendation{},
+			Altcoins:   []recommender.Recommendation{},
+		}
+		
+		for rows.Next() {
+			var symbol, coinCategory, direction, strategiesJSON, reasoning, technicalSnapshot string
+			var score float64
+			var confidence, leverageSuggested int
+			var priceAtRec float64
+			var createdAt time.Time
+			
+			err := rows.Scan(&symbol, &coinCategory, &score, &confidence, &direction, &strategiesJSON,
+				&reasoning, &priceAtRec, &leverageSuggested, &technicalSnapshot, &createdAt)
+			if err != nil {
+				continue
+			}
+			
+			// Parse strategies JSON to verify it matches
+			var strategiesList []string
+			if err := json.Unmarshal([]byte(strategiesJSON), &strategiesList); err != nil {
+				continue
+			}
+			
+			// Check if this recommendation belongs to the requested strategy
+			found := false
+			for _, s := range strategiesList {
+				if s == strategy {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+			
+			// Parse technical snapshot to get BTC status
+			var technicalData recommender.TechnicalSnapshot
+			if err := json.Unmarshal([]byte(technicalSnapshot), &technicalData); err == nil {
+				if btcStatus == "" && technicalData.BTCDirection != "" {
+					btcStatus = technicalData.BTCDirection
+				}
+			}
+			
+			// Track latest created_at
+			if createdAt.After(maxCreatedAt) {
+				maxCreatedAt = createdAt
+			}
+			
+			// Create recommendation object
+			rec := recommender.Recommendation{
+				Symbol:            symbol,
+				Category:          recommender.CoinCategory(coinCategory),
+				Score:             score,
+				Confidence:        confidence,
+				Direction:         direction,
+				Strategy:          strategy,
+				Reasoning:         reasoning,
+				CurrentPrice:      priceAtRec,
+				SuggestedLeverage: leverageSuggested,
+				TechnicalData:     technicalData,
+				CreatedAt:         createdAt,
+			}
+			
+			// Add to appropriate category with limit
+			if coinCategory == "major" && majorCount < body.Limit {
+				strategyRecs[strategy].MajorCoins = append(strategyRecs[strategy].MajorCoins, rec)
+				majorCount++
+			} else if coinCategory == "altcoin" && altcoinCount < body.Limit {
+				strategyRecs[strategy].Altcoins = append(strategyRecs[strategy].Altcoins, rec)
+				altcoinCount++
+			}
+			
+			// Stop if we have enough recommendations for this strategy
+			if majorCount >= body.Limit && altcoinCount >= body.Limit {
+				break
+			}
+		}
+		rows.Close()
+	}
+	
+	// If no BTC status found, use default
+	if btcStatus == "" {
+		btcStatus = recommender.AnalyzeBTCDirection()
+	}
+	
+	// If no recommendations found, return empty response
+	if len(strategyRecs) == 0 {
+		if maxCreatedAt.IsZero() {
+			maxCreatedAt = time.Now()
+		}
+		c.JSON(http.StatusOK, recommender.RecommendationResponse{
+			Strategies: strategyRecs,
+			UpdatedAt:  maxCreatedAt,
+			BTCStatus:  btcStatus,
+		})
+		return
+	}
+	
+	// Build response
+	response := recommender.RecommendationResponse{
+		Strategies: strategyRecs,
+		UpdatedAt:  maxCreatedAt,
+		BTCStatus:  btcStatus,
+	}
+	
+	c.JSON(http.StatusOK, response)
+}
+
+// handleCalculateRecommendations 手动计算推荐（生成并保存到数据库）
+func (s *Server) handleCalculateRecommendations(c *gin.Context) {
+	// Get strategy from query param or body
+	strategy := c.Query("strategy")
+	if strategy == "" {
+		var body struct {
+			Strategy string `json:"strategy"`
+			Limit    int    `json:"limit"`
+		}
+		if err := c.ShouldBindJSON(&body); err == nil {
+			strategy = body.Strategy
+		}
+	}
+	
+	if strategy == "" {
+		strategy = "risk_first" // Default
+	}
+	
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if limit == 0 {
+		limit = 10
+	}
+	
 	// Get leverage settings
 	btcETHLeverage := 5
 	altcoinLeverage := 5
@@ -2387,14 +2658,55 @@ func (s *Server) handleRefreshRecommendations(c *gin.Context) {
 		}
 	}
 	
-	// Generate recommendations
-	response, err := recommender.GenerateRecommendations(body.Strategies, body.Limit, btcETHLeverage, altcoinLeverage)
+	// Generate recommendations for the specified strategy
+	response, err := recommender.GenerateRecommendations([]string{strategy}, limit, btcETHLeverage, altcoinLeverage)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	
+	// Save recommendations to database
+	for strategyName, strategyRecs := range response.Strategies {
+		// Save major coins for this strategy
+		for _, rec := range strategyRecs.MajorCoins {
+			if err := s.saveRecommendationToDB(&rec); err != nil {
+				log.Printf("ERROR: Failed to save major coin recommendation for %s [%s]: %v", rec.Symbol, strategyName, err)
+			}
+		}
+		
+		// Save altcoins for this strategy
+		for _, rec := range strategyRecs.Altcoins {
+			if err := s.saveRecommendationToDB(&rec); err != nil {
+				log.Printf("ERROR: Failed to save altcoin recommendation for %s [%s]: %v", rec.Symbol, strategyName, err)
+			}
+		}
+	}
+	
 	c.JSON(http.StatusOK, response)
+}
+
+// saveRecommendationToDB saves a recommendation to the database (helper method)
+func (s *Server) saveRecommendationToDB(rec *recommender.Recommendation) error {
+	// Convert single strategy to array for database storage (backward compatibility)
+	strategiesJSON, err := json.Marshal([]string{rec.Strategy})
+	if err != nil {
+		return fmt.Errorf("failed to marshal strategy for %s: %w", rec.Symbol, err)
+	}
+	technicalJSON, err := json.Marshal(rec.TechnicalData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal technical data for %s: %w", rec.Symbol, err)
+	}
+	
+	_, err = s.database.Exec(`
+		INSERT INTO recommendations 
+		(symbol, coin_category, score, confidence, direction, strategies, reasoning, 
+		 price_at_recommendation, leverage_suggested, technical_snapshot, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, rec.Symbol, rec.Category, rec.Score, rec.Confidence, rec.Direction,
+		string(strategiesJSON), rec.Reasoning, rec.CurrentPrice, rec.SuggestedLeverage,
+		string(technicalJSON), rec.CreatedAt)
+	
+	return err
 }
 
 // handleGetPublicTraderConfig 获取公开的交易员配置信息（无需认证，不包含敏感信息）

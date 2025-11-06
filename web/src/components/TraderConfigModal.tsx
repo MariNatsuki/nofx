@@ -2,12 +2,26 @@ import { useState, useEffect } from 'react'
 import type { AIModel, Exchange, CreateTraderRequest } from '../types'
 import { useLanguage } from '../contexts/LanguageContext'
 import { t } from '../i18n/translations'
-import { getAuthHeaders } from '../lib/api'
+import { getAuthHeaders, api } from '../lib/api'
 
 // 提取下划线后面的名称部分
 function getShortName(fullName: string): string {
   const parts = fullName.split('_')
   return parts.length > 1 ? parts[parts.length - 1] : fullName
+}
+
+// Map system_prompt_template to recommendation strategy name
+function mapTemplateToStrategy(template: string): string {
+  // Direct matches
+  if (['risk_first', 'adaptive', 'adaptive_relaxed', 'nof1', 'Hansen', 'taro_long_prompts', 'default'].includes(template)) {
+    return template
+  }
+  // Map 'aggressive' to 'adaptive_relaxed'
+  if (template === 'aggressive') {
+    return 'adaptive_relaxed'
+  }
+  // Fallback to 'risk_first'
+  return 'risk_first'
 }
 
 interface TraderConfigData {
@@ -71,6 +85,12 @@ export function TraderConfigModal({
   const [promptTemplates, setPromptTemplates] = useState<{ name: string }[]>([])
   const [isFetchingBalance, setIsFetchingBalance] = useState(false)
   const [balanceFetchError, setBalanceFetchError] = useState<string>('')
+  const [showAutoFillDialog, setShowAutoFillDialog] = useState(false)
+  const [replaceMode, setReplaceMode] = useState<'replace' | 'append'>('replace')
+  const [includeMajor, setIncludeMajor] = useState(true)
+  const [includeAltcoins, setIncludeAltcoins] = useState(true)
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
+  const [autoFillError, setAutoFillError] = useState<string>('')
 
   useEffect(() => {
     if (traderData) {
@@ -221,6 +241,74 @@ export function TraderConfigModal({
       setBalanceFetchError(t('balanceFetchErrorNetwork', language))
     } finally {
       setIsFetchingBalance(false)
+    }
+  }
+
+  const handleAutoFillFromRecommendations = async () => {
+    // Validate that at least one category is selected
+    if (!includeMajor && !includeAltcoins) {
+      setAutoFillError(t('selectAtLeastOneCategory', language))
+      return
+    }
+
+    setIsLoadingRecommendations(true)
+    setAutoFillError('')
+
+    try {
+      // Get strategy from system_prompt_template
+      const strategy = mapTemplateToStrategy(formData.system_prompt_template)
+
+      // Fetch recommendations
+      const response = await api.getRecommendations(strategy, 10)
+
+      // Extract symbols based on selected categories
+      const strategyRecs = response.strategies?.[strategy]
+      if (!strategyRecs) {
+        throw new Error(t('noRecommendationsFound', language))
+      }
+
+      const symbols: string[] = []
+      if (includeMajor && strategyRecs.major_coins) {
+        symbols.push(...strategyRecs.major_coins.map((rec: any) => rec.symbol))
+      }
+      if (includeAltcoins && strategyRecs.altcoins) {
+        symbols.push(...strategyRecs.altcoins.map((rec: any) => rec.symbol))
+      }
+
+      if (symbols.length === 0) {
+        throw new Error(t('noRecommendationsFound', language))
+      }
+
+      // Apply replace or append logic
+      let finalSymbols: string[]
+      if (replaceMode === 'replace') {
+        finalSymbols = symbols
+      } else {
+        // Append: merge with existing, remove duplicates
+        const existingSymbols = formData.trading_symbols
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s)
+        finalSymbols = [...new Set([...existingSymbols, ...symbols])]
+      }
+
+      // Update form state
+      const symbolsString = finalSymbols.join(',')
+      setFormData((prev) => ({ ...prev, trading_symbols: symbolsString }))
+      setSelectedCoins(finalSymbols)
+
+      // Close dialog and show success
+      setShowAutoFillDialog(false)
+      setAutoFillError('')
+      // Reset dialog state for next time
+      setReplaceMode('replace')
+      setIncludeMajor(true)
+      setIncludeAltcoins(true)
+    } catch (error: any) {
+      console.error('Failed to load recommendations:', error)
+      setAutoFillError(error.message || t('failedToLoadRecommendations', language))
+    } finally {
+      setIsLoadingRecommendations(false)
     }
   }
 
@@ -531,15 +619,32 @@ export function TraderConfigModal({
                   <label className="text-sm text-[#EAECEF]">
                     {t('tradingSymbolsPlaceholderWithHint', language)}
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowCoinSelector(!showCoinSelector)}
-                    className="px-3 py-1 text-xs bg-[#F0B90B] text-black rounded hover:bg-[#E1A706] transition-colors"
-                  >
-                    {showCoinSelector
-                      ? t('collapseSelection', language)
-                      : t('quickSelection', language)}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAutoFillDialog(true)}
+                      disabled={isLoadingRecommendations}
+                      className="px-3 py-1 text-xs bg-[#3B82F6] text-white rounded hover:bg-[#2563EB] transition-colors disabled:bg-[#848E9C] disabled:cursor-not-allowed flex items-center gap-1"
+                    >
+                      {isLoadingRecommendations ? (
+                        <>
+                          <span className="animate-spin">⏳</span>
+                          {t('loadingRecommendations', language)}
+                        </>
+                      ) : (
+                        t('autoFillFromRecommendations', language)
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowCoinSelector(!showCoinSelector)}
+                      className="px-3 py-1 text-xs bg-[#F0B90B] text-black rounded hover:bg-[#E1A706] transition-colors"
+                    >
+                      {showCoinSelector
+                        ? t('collapseSelection', language)
+                        : t('quickSelection', language)}
+                    </button>
+                  </div>
                 </div>
                 <input
                   type="text"
@@ -550,6 +655,9 @@ export function TraderConfigModal({
                   className="w-full px-3 py-2 bg-[#0B0E11] border border-[#2B3139] rounded text-[#EAECEF] focus:border-[#F0B90B] focus:outline-none"
                   placeholder={t('tradingSymbolsExample', language)}
                 />
+                {autoFillError && (
+                  <p className="text-xs text-red-500 mt-1">{autoFillError}</p>
+                )}
 
                 {/* 币种选择器 */}
                 {showCoinSelector && (
@@ -700,6 +808,134 @@ export function TraderConfigModal({
             </div>
           </div>
         </div>
+
+        {/* Auto-Fill Dialog */}
+        {showAutoFillDialog && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm">
+            <div
+              className="bg-[#1E2329] border border-[#2B3139] rounded-xl shadow-2xl max-w-md w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Dialog Header */}
+              <div className="flex items-center justify-between p-6 border-b border-[#2B3139]">
+                <h3 className="text-lg font-bold text-[#EAECEF]">
+                  {t('autoFillDialogTitle', language)}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowAutoFillDialog(false)
+                    setAutoFillError('')
+                  }}
+                  className="w-8 h-8 rounded-lg text-[#848E9C] hover:text-[#EAECEF] hover:bg-[#2B3139] transition-colors flex items-center justify-center"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Dialog Content */}
+              <div className="p-6 space-y-6">
+                {/* Replace/Append Options */}
+                <div>
+                  <label className="text-sm text-[#EAECEF] block mb-3">
+                    {t('autoFillMode', language)}
+                  </label>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setReplaceMode('replace')}
+                      className={`flex-1 px-4 py-2 rounded text-sm transition-colors ${
+                        replaceMode === 'replace'
+                          ? 'bg-[#F0B90B] text-black'
+                          : 'bg-[#0B0E11] text-[#848E9C] border border-[#2B3139] hover:border-[#F0B90B]'
+                      }`}
+                    >
+                      {t('replaceExistingCoins', language)}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReplaceMode('append')}
+                      className={`flex-1 px-4 py-2 rounded text-sm transition-colors ${
+                        replaceMode === 'append'
+                          ? 'bg-[#F0B90B] text-black'
+                          : 'bg-[#0B0E11] text-[#848E9C] border border-[#2B3139] hover:border-[#F0B90B]'
+                      }`}
+                    >
+                      {t('appendToExistingCoins', language)}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Coin Categories */}
+                <div>
+                  <label className="text-sm text-[#EAECEF] block mb-3">
+                    {t('selectCoinCategories', language)}
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeMajor}
+                        onChange={(e) => setIncludeMajor(e.target.checked)}
+                        className="w-4 h-4"
+                        style={{ accentColor: '#F0B90B' }}
+                      />
+                      <span className="text-sm text-[#EAECEF]">
+                        {t('includeMajorCoins', language)}
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeAltcoins}
+                        onChange={(e) => setIncludeAltcoins(e.target.checked)}
+                        className="w-4 h-4"
+                        style={{ accentColor: '#F0B90B' }}
+                      />
+                      <span className="text-sm text-[#EAECEF]">
+                        {t('includeAltcoins', language)}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {autoFillError && (
+                  <div
+                    className="p-3 rounded text-sm"
+                    style={{
+                      background: 'rgba(246, 70, 93, 0.1)',
+                      color: '#F6465D',
+                      border: '1px solid rgba(246, 70, 93, 0.2)',
+                    }}
+                  >
+                    {autoFillError}
+                  </div>
+                )}
+              </div>
+
+              {/* Dialog Footer */}
+              <div className="flex justify-end gap-3 p-6 border-t border-[#2B3139]">
+                <button
+                  onClick={() => {
+                    setShowAutoFillDialog(false)
+                    setAutoFillError('')
+                  }}
+                  className="px-6 py-2 bg-[#2B3139] text-[#EAECEF] rounded-lg hover:bg-[#404750] transition-colors"
+                >
+                  {t('cancel', language)}
+                </button>
+                <button
+                  onClick={handleAutoFillFromRecommendations}
+                  disabled={isLoadingRecommendations || (!includeMajor && !includeAltcoins)}
+                  className="px-6 py-2 bg-gradient-to-r from-[#F0B90B] to-[#E1A706] text-black rounded-lg hover:from-[#E1A706] hover:to-[#D4951E] transition-colors disabled:bg-[#848E9C] disabled:cursor-not-allowed font-medium"
+                >
+                  {isLoadingRecommendations
+                    ? t('loadingRecommendations', language)
+                    : t('confirm', language)}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="flex justify-end gap-3 p-6 border-t border-[#2B3139] bg-gradient-to-r from-[#1E2329] to-[#252B35]">

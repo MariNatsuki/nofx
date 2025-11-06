@@ -389,4 +389,19 @@ export const api = {
     if (!res.ok) throw new Error('errorRefreshRecommendationsFailed')
     return res.json()
   },
+
+  async calculateRecommendations(
+    strategy: string,
+    limit: number = 10
+  ): Promise<any> {
+    const res = await fetch(`${API_BASE}/recommendations/calculate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ strategy, limit }),
+    })
+    if (!res.ok) throw new Error('errorCalculateRecommendationsFailed')
+    return res.json()
+  },
 }

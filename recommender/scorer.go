@@ -74,7 +74,7 @@ func scoreCoin(symbol string, category CoinCategory, strategy StrategyConfig, bt
 		VolumeRatio:  1.0,
 		OIChange:     calculateOIChange(data.OpenInterest),
 		FundingRate:  data.FundingRate,
-		BTCDirection: analyzeBTCDirection(),
+		BTCDirection: AnalyzeBTCDirection(),
 	}
 
 	if data.LongerTermContext != nil {
@@ -388,8 +388,8 @@ func calculateBTCCorrelation(symbol string, category CoinCategory, btcDirection 
 	return 0, ""
 }
 
-// analyzeBTCDirection analyzes BTC direction
-func analyzeBTCDirection() string {
+// AnalyzeBTCDirection analyzes BTC direction (exported for use in API)
+func AnalyzeBTCDirection() string {
 	// Cache this for 3 minutes to avoid repeated calculations
 	btcData, err := market.Get("BTCUSDT")
 	if err != nil {
@@ -549,7 +549,7 @@ func aggregateStrategyScores(symbol string, category CoinCategory, data *market.
 		VolumeRatio:  1.0,
 		OIChange:     calculateOIChange(data.OpenInterest),
 		FundingRate:  data.FundingRate,
-		BTCDirection: analyzeBTCDirection(),
+		BTCDirection: AnalyzeBTCDirection(),
 	}
 
 	if data.LongerTermContext != nil {
