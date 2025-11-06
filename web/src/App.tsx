@@ -15,7 +15,8 @@ import { LanguageProvider, useLanguage } from './contexts/LanguageContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { t, type Language } from './i18n/translations'
 import { useSystemConfig } from './hooks/useSystemConfig'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Loader2, Languages } from 'lucide-react'
+import { translateText } from './lib/translate'
 import type {
   SystemStatus,
   AccountInfo,
@@ -899,6 +900,114 @@ function DecisionCard({
   const [showInputPrompt, setShowInputPrompt] = useState(false)
   const [showCoT, setShowCoT] = useState(false)
 
+  // Translation state
+  const [translatedCotTrace, setTranslatedCotTrace] = useState<string | null>(
+    null
+  )
+  const [translatedInputPrompt, setTranslatedInputPrompt] = useState<
+    string | null
+  >(null)
+  const [translatedErrorMessage, setTranslatedErrorMessage] = useState<
+    string | null
+  >(null)
+  const [translatedActionErrors, setTranslatedActionErrors] = useState<
+    Map<number, string>
+  >(new Map())
+  const [showTranslatedCotTrace, setShowTranslatedCotTrace] = useState(false)
+  const [showTranslatedInputPrompt, setShowTranslatedInputPrompt] =
+    useState(false)
+  const [showTranslatedErrorMessage, setShowTranslatedErrorMessage] =
+    useState(false)
+  const [showTranslatedActionErrors, setShowTranslatedActionErrors] = useState<
+    Set<number>
+  >(new Set())
+  const [translating, setTranslating] = useState<{
+    cotTrace: boolean
+    inputPrompt: boolean
+    errorMessage: boolean
+    actionErrors: Set<number>
+  }>({
+    cotTrace: false,
+    inputPrompt: false,
+    errorMessage: false,
+    actionErrors: new Set(),
+  })
+
+  // Translation handlers
+  const handleTranslateCotTrace = async () => {
+    if (!decision.cot_trace || translating.cotTrace) return
+
+    setTranslating((prev) => ({ ...prev, cotTrace: true }))
+    try {
+      const translated = await translateText(decision.cot_trace, language)
+      setTranslatedCotTrace(translated)
+      setShowTranslatedCotTrace(true)
+    } catch (error) {
+      console.error('Failed to translate cot_trace:', error)
+    } finally {
+      setTranslating((prev) => ({ ...prev, cotTrace: false }))
+    }
+  }
+
+  const handleTranslateInputPrompt = async () => {
+    if (!decision.input_prompt || translating.inputPrompt) return
+
+    setTranslating((prev) => ({ ...prev, inputPrompt: true }))
+    try {
+      const translated = await translateText(decision.input_prompt, language)
+      setTranslatedInputPrompt(translated)
+      setShowTranslatedInputPrompt(true)
+    } catch (error) {
+      console.error('Failed to translate input_prompt:', error)
+    } finally {
+      setTranslating((prev) => ({ ...prev, inputPrompt: false }))
+    }
+  }
+
+  const handleTranslateErrorMessage = async () => {
+    if (!decision.error_message || translating.errorMessage) return
+
+    setTranslating((prev) => ({ ...prev, errorMessage: true }))
+    try {
+      const translated = await translateText(decision.error_message, language)
+      setTranslatedErrorMessage(translated)
+      setShowTranslatedErrorMessage(true)
+    } catch (error) {
+      console.error('Failed to translate error_message:', error)
+    } finally {
+      setTranslating((prev) => ({ ...prev, errorMessage: false }))
+    }
+  }
+
+  const handleTranslateActionError = async (
+    index: number,
+    errorText: string
+  ) => {
+    if (translating.actionErrors.has(index)) return
+
+    setTranslating((prev) => ({
+      ...prev,
+      actionErrors: new Set(prev.actionErrors).add(index),
+    }))
+    try {
+      const translated = await translateText(errorText, language)
+      setTranslatedActionErrors((prev) => {
+        const newMap = new Map(prev)
+        newMap.set(index, translated)
+        return newMap
+      })
+      setShowTranslatedActionErrors((prev) => new Set(prev).add(index))
+    } catch (error) {
+      console.error('Failed to translate action error:', error)
+    } finally {
+      setTranslating((prev) => {
+        const newSet = new Set(prev.actionErrors)
+        newSet.delete(index)
+        return { ...prev, actionErrors: newSet }
+      })
+    }
+  }
+
   return (
     <div
       className="rounded p-5 transition-all duration-300 hover:translate-y-[-2px]"
@@ -933,20 +1042,67 @@ function DecisionCard({
       {/* Input Prompt - Collapsible */}
       {decision.input_prompt && (
         <div className="mb-3">
-          <button
-            onClick={() => setShowInputPrompt(!showInputPrompt)}
-            className="flex items-center gap-2 text-sm transition-colors"
-            style={{ color: '#60a5fa' }}
-          >
-            <span className="font-semibold">
-              📥 {t('inputPrompt', language)}
-            </span>
-            <span className="text-xs">
-              {showInputPrompt
-                ? t('collapse', language)
-                : t('expand', language)}
-            </span>
-          </button>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <button
+              onClick={() => setShowInputPrompt(!showInputPrompt)}
+              className="flex items-center gap-2 text-sm transition-colors"
+              style={{ color: '#60a5fa' }}
+            >
+              <span className="font-semibold">
+                📥 {t('inputPrompt', language)}
+              </span>
+              <span className="text-xs">
+                {showInputPrompt
+                  ? t('collapse', language)
+                  : t('expand', language)}
+              </span>
+            </button>
+            {showInputPrompt && (
+              <div className="flex items-center gap-2">
+                {translatedInputPrompt && (
+                  <button
+                    onClick={() =>
+                      setShowTranslatedInputPrompt(!showTranslatedInputPrompt)
+                    }
+                    className="text-xs px-2 py-1 rounded transition-colors"
+                    style={{
+                      background: showTranslatedInputPrompt
+                        ? 'rgba(96, 165, 250, 0.2)'
+                        : 'rgba(96, 165, 250, 0.1)',
+                      color: '#60a5fa',
+                      border: '1px solid rgba(96, 165, 250, 0.3)',
+                    }}
+                  >
+                    {showTranslatedInputPrompt
+                      ? t('showOriginal', language)
+                      : t('showTranslated', language)}
+                  </button>
+                )}
+                <button
+                  onClick={handleTranslateInputPrompt}
+                  disabled={translating.inputPrompt}
+                  className="flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors disabled:opacity-50"
+                  style={{
+                    background: 'rgba(96, 165, 250, 0.1)',
+                    color: '#60a5fa',
+                    border: '1px solid rgba(96, 165, 250, 0.3)',
+                  }}
+                >
+                  {translating.inputPrompt ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>{t('translating', language)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Languages className="w-3 h-3" />
+                      <span>{t('translate', language)}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
           {showInputPrompt && (
             <div
               className="mt-2 rounded p-4 text-sm font-mono whitespace-pre-wrap max-h-96 overflow-y-auto"
@@ -956,7 +1112,9 @@ function DecisionCard({
                 color: '#EAECEF',
               }}
             >
-              {decision.input_prompt}
+              {showTranslatedInputPrompt && translatedInputPrompt
+                ? translatedInputPrompt
+                : decision.input_prompt}
             </div>
           )}
         </div>
@@ -965,18 +1123,65 @@ function DecisionCard({
       {/* AI Chain of Thought - Collapsible */}
       {decision.cot_trace && (
         <div className="mb-3">
-          <button
-            onClick={() => setShowCoT(!showCoT)}
-            className="flex items-center gap-2 text-sm transition-colors"
-            style={{ color: '#F0B90B' }}
-          >
-            <span className="font-semibold">
-              📤 {t('aiThinking', language)}
-            </span>
-            <span className="text-xs">
-              {showCoT ? t('collapse', language) : t('expand', language)}
-            </span>
-          </button>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <button
+              onClick={() => setShowCoT(!showCoT)}
+              className="flex items-center gap-2 text-sm transition-colors"
+              style={{ color: '#F0B90B' }}
+            >
+              <span className="font-semibold">
+                📤 {t('aiThinking', language)}
+              </span>
+              <span className="text-xs">
+                {showCoT ? t('collapse', language) : t('expand', language)}
+              </span>
+            </button>
+            {showCoT && (
+              <div className="flex items-center gap-2">
+                {translatedCotTrace && (
+                  <button
+                    onClick={() =>
+                      setShowTranslatedCotTrace(!showTranslatedCotTrace)
+                    }
+                    className="text-xs px-2 py-1 rounded transition-colors"
+                    style={{
+                      background: showTranslatedCotTrace
+                        ? 'rgba(240, 185, 11, 0.2)'
+                        : 'rgba(240, 185, 11, 0.1)',
+                      color: '#F0B90B',
+                      border: '1px solid rgba(240, 185, 11, 0.3)',
+                    }}
+                  >
+                    {showTranslatedCotTrace
+                      ? t('showOriginal', language)
+                      : t('showTranslated', language)}
+                  </button>
+                )}
+                <button
+                  onClick={handleTranslateCotTrace}
+                  disabled={translating.cotTrace}
+                  className="flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors disabled:opacity-50"
+                  style={{
+                    background: 'rgba(240, 185, 11, 0.1)',
+                    color: '#F0B90B',
+                    border: '1px solid rgba(240, 185, 11, 0.3)',
+                  }}
+                >
+                  {translating.cotTrace ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>{t('translating', language)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Languages className="w-3 h-3" />
+                      <span>{t('translate', language)}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
           {showCoT && (
             <div
               className="mt-2 rounded p-4 text-sm font-mono whitespace-pre-wrap max-h-96 overflow-y-auto"
@@ -986,7 +1191,9 @@ function DecisionCard({
                 color: '#EAECEF',
               }}
             >
-              {decision.cot_trace}
+              {showTranslatedCotTrace && translatedCotTrace
+                ? translatedCotTrace
+                : decision.cot_trace}
             </div>
           )}
         </div>
@@ -1038,9 +1245,54 @@ function DecisionCard({
                 {action.success ? '✓' : '✗'}
               </span>
               {action.error && (
-                <span className="text-xs ml-2" style={{ color: '#F6465D' }}>
-                  {action.error}
-                </span>
+                <div className="flex items-center gap-2 ml-2">
+                  <span className="text-xs" style={{ color: '#F6465D' }}>
+                    {showTranslatedActionErrors.has(j) &&
+                    translatedActionErrors.has(j)
+                      ? translatedActionErrors.get(j)
+                      : action.error}
+                  </span>
+                  {!showTranslatedActionErrors.has(j) && (
+                    <button
+                      onClick={() =>
+                        handleTranslateActionError(j, action.error!)
+                      }
+                      disabled={translating.actionErrors.has(j)}
+                      className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded transition-colors disabled:opacity-50"
+                      style={{
+                        background: 'rgba(246, 70, 93, 0.1)',
+                        color: '#F6465D',
+                        border: '1px solid rgba(246, 70, 93, 0.3)',
+                      }}
+                      title={t('translate', language)}
+                    >
+                      {translating.actionErrors.has(j) ? (
+                        <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                      ) : (
+                        <Languages className="w-2.5 h-2.5" />
+                      )}
+                    </button>
+                  )}
+                  {showTranslatedActionErrors.has(j) &&
+                    translatedActionErrors.has(j) && (
+                      <button
+                        onClick={() => {
+                          const newSet = new Set(showTranslatedActionErrors)
+                          newSet.delete(j)
+                          setShowTranslatedActionErrors(newSet)
+                        }}
+                        className="text-xs px-1.5 py-0.5 rounded transition-colors"
+                        style={{
+                          background: 'rgba(246, 70, 93, 0.1)',
+                          color: '#F6465D',
+                          border: '1px solid rgba(246, 70, 93, 0.3)',
+                        }}
+                        title={t('showOriginal', language)}
+                      >
+                        {t('showOriginal', language)}
+                      </button>
+                    )}
+                </div>
               )}
             </div>
           ))}
@@ -1139,7 +1391,57 @@ function DecisionCard({
           className="text-sm rounded px-3 py-2 mt-3"
           style={{ color: '#F6465D', background: 'rgba(246, 70, 93, 0.1)' }}
         >
-          ❌ {decision.error_message}
+          <div className="flex items-start justify-between gap-2">
+            <span>
+              ❌{' '}
+              {showTranslatedErrorMessage && translatedErrorMessage
+                ? translatedErrorMessage
+                : decision.error_message}
+            </span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {translatedErrorMessage && (
+                <button
+                  onClick={() =>
+                    setShowTranslatedErrorMessage(!showTranslatedErrorMessage)
+                  }
+                  className="text-xs px-2 py-1 rounded transition-colors"
+                  style={{
+                    background: showTranslatedErrorMessage
+                      ? 'rgba(246, 70, 93, 0.2)'
+                      : 'rgba(246, 70, 93, 0.15)',
+                    color: '#F6465D',
+                    border: '1px solid rgba(246, 70, 93, 0.3)',
+                  }}
+                >
+                  {showTranslatedErrorMessage
+                    ? t('showOriginal', language)
+                    : t('showTranslated', language)}
+                </button>
+              )}
+              <button
+                onClick={handleTranslateErrorMessage}
+                disabled={translating.errorMessage}
+                className="flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors disabled:opacity-50"
+                style={{
+                  background: 'rgba(246, 70, 93, 0.15)',
+                  color: '#F6465D',
+                  border: '1px solid rgba(246, 70, 93, 0.3)',
+                }}
+              >
+                {translating.errorMessage ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>{t('translating', language)}</span>
+                  </>
+                ) : (
+                  <>
+                    <Languages className="w-3 h-3" />
+                    <span>{t('translate', language)}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

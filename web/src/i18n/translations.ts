@@ -63,6 +63,11 @@ export const translations = {
     aiThinking: 'AI Chain of Thought',
     collapse: 'Collapse',
     expand: 'Expand',
+    translate: 'Translate',
+    translating: 'Translating...',
+    translationError: 'Translation failed',
+    showOriginal: 'Show Original',
+    showTranslated: 'Show Translated',
 
     // Equity Chart
     accountEquityCurve: 'Account Equity Curve',
@@ -953,6 +958,11 @@ export const translations = {
     aiThinking: '💭 AI思维链分析',
     collapse: '▼ 收起',
     expand: '▶ 展开',
+    translate: '翻译',
+    translating: '翻译中...',
+    translationError: '翻译失败',
+    showOriginal: '显示原文',
+    showTranslated: '显示翻译',
 
     // Equity Chart
     accountEquityCurve: '账户净值曲线',
