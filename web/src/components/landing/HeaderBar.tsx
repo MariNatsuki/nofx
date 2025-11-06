@@ -829,7 +829,7 @@ export default function HeaderBar({
                 }`}
               >
                 <span className="text-lg">🇨🇳</span>
-                <span className="text-sm">中文</span>
+                <span className="text-sm">{t('languageChinese', language)}</span>
               </button>
               <button
                 onClick={() => {
@@ -843,7 +843,7 @@ export default function HeaderBar({
                 }`}
               >
                 <span className="text-lg">🇺🇸</span>
-                <span className="text-sm">English</span>
+                <span className="text-sm">{t('languageEnglish', language)}</span>
               </button>
             </div>
           </div>

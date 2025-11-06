@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
-import { t } from '../i18n/translations'
+import { t, translateError } from '../i18n/translations'
 import { Header } from './Header'
 import { ArrowLeft, KeyRound, Eye, EyeOff } from 'lucide-react'
 
@@ -41,7 +41,7 @@ export function ResetPasswordPage() {
         window.dispatchEvent(new PopStateEvent('popstate'))
       }, 3000)
     } else {
-      setError(result.message || t('resetPasswordFailed', language))
+      setError(translateError(result.message, language) || t('errorResetPasswordFailed', language))
     }
 
     setLoading(false)

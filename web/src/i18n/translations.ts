@@ -684,6 +684,60 @@ export const translations = {
     faqGetHelp: 'Where can I get help?',
     faqGetHelpAnswer:
       'Check GitHub Discussions, join our Telegram Community, or open an issue on GitHub.',
+
+    // Error Messages (API)
+    errorGetTradersFailed: 'Failed to get trader list',
+    errorGetPublicTradersFailed: 'Failed to get public trader list',
+    errorCreateTraderFailed: 'Failed to create trader',
+    errorDeleteTraderFailed: 'Failed to delete trader',
+    errorStartTraderFailed: 'Failed to start trader',
+    errorStopTraderFailed: 'Failed to stop trader',
+    errorUpdateTraderPromptFailed: 'Failed to update custom strategy',
+    errorGetTraderConfigFailed: 'Failed to get trader configuration',
+    errorUpdateTraderFailed: 'Failed to update trader',
+    errorGetModelConfigsFailed: 'Failed to get model configuration',
+    errorGetSupportedModelsFailed: 'Failed to get supported models',
+    errorUpdateModelConfigsFailed: 'Failed to update model configuration',
+    errorGetExchangeConfigsFailed: 'Failed to get exchange configuration',
+    errorGetSupportedExchangesFailed: 'Failed to get supported exchanges',
+    errorUpdateExchangeConfigsFailed: 'Failed to update exchange configuration',
+    errorGetStatusFailed: 'Failed to get system status',
+    errorGetAccountFailed: 'Failed to get account information',
+    errorGetPositionsFailed: 'Failed to get positions list',
+    errorGetDecisionsFailed: 'Failed to get decision logs',
+    errorGetLatestDecisionsFailed: 'Failed to get latest decisions',
+    errorGetStatisticsFailed: 'Failed to get statistics',
+    errorGetEquityHistoryFailed: 'Failed to get historical data',
+    errorGetEquityHistoryBatchFailed: 'Failed to get batch historical data',
+    errorGetTopTradersFailed: 'Failed to get top 5 traders',
+    errorGetPublicTraderConfigFailed: 'Failed to get public trader configuration',
+    errorGetPerformanceFailed: 'Failed to get AI learning data',
+    errorGetCompetitionFailed: 'Failed to get competition data',
+    errorGetUserSignalSourceFailed: 'Failed to get user signal source configuration',
+    errorSaveUserSignalSourceFailed: 'Failed to save user signal source configuration',
+    errorGetServerIPFailed: 'Failed to get server IP',
+
+    // Solution List Items
+    signalSourceSolution1:
+      "Click '📡 {signalSource}' button to configure API address",
+    signalSourceSolution2:
+      "Or disable 'Use Coin Pool' and 'Use OI Top' in trader configuration",
+    signalSourceSolution3:
+      'Or set custom coin list in trader configuration',
+
+    // Auth Error Messages
+    errorLoginFailed: 'Login failed',
+    errorLoginFailedRetry: 'Login failed, please retry',
+    errorUnknownError: 'Unknown error',
+    errorRegisterFailed: 'Registration failed, please retry',
+    errorRegisterFailedRetry: 'Registration failed, please retry',
+    errorVerifyOTPFailed: 'OTP verification failed, please retry',
+    errorCompleteRegistrationFailed: 'Registration completion failed, please retry',
+    errorResetPasswordFailed: 'Password reset failed, please retry',
+
+    // Language Labels
+    languageChinese: '中文',
+    languageEnglish: 'English',
   },
   zh: {
     // Header
@@ -1325,6 +1379,57 @@ export const translations = {
     faqGetHelp: '在哪里可以获得帮助？',
     faqGetHelpAnswer:
       '查看 GitHub Discussions、加入 Telegram 社区或在 GitHub 上提出 issue。',
+
+    // Error Messages (API)
+    errorGetTradersFailed: '获取trader列表失败',
+    errorGetPublicTradersFailed: '获取公开trader列表失败',
+    errorCreateTraderFailed: '创建交易员失败',
+    errorDeleteTraderFailed: '删除交易员失败',
+    errorStartTraderFailed: '启动交易员失败',
+    errorStopTraderFailed: '停止交易员失败',
+    errorUpdateTraderPromptFailed: '更新自定义策略失败',
+    errorGetTraderConfigFailed: '获取交易员配置失败',
+    errorUpdateTraderFailed: '更新交易员失败',
+    errorGetModelConfigsFailed: '获取模型配置失败',
+    errorGetSupportedModelsFailed: '获取支持的模型失败',
+    errorUpdateModelConfigsFailed: '更新模型配置失败',
+    errorGetExchangeConfigsFailed: '获取交易所配置失败',
+    errorGetSupportedExchangesFailed: '获取支持的交易所失败',
+    errorUpdateExchangeConfigsFailed: '更新交易所配置失败',
+    errorGetStatusFailed: '获取系统状态失败',
+    errorGetAccountFailed: '获取账户信息失败',
+    errorGetPositionsFailed: '获取持仓列表失败',
+    errorGetDecisionsFailed: '获取决策日志失败',
+    errorGetLatestDecisionsFailed: '获取最新决策失败',
+    errorGetStatisticsFailed: '获取统计信息失败',
+    errorGetEquityHistoryFailed: '获取历史数据失败',
+    errorGetEquityHistoryBatchFailed: '获取批量历史数据失败',
+    errorGetTopTradersFailed: '获取前5名交易员失败',
+    errorGetPublicTraderConfigFailed: '获取公开交易员配置失败',
+    errorGetPerformanceFailed: '获取AI学习数据失败',
+    errorGetCompetitionFailed: '获取竞赛数据失败',
+    errorGetUserSignalSourceFailed: '获取用户信号源配置失败',
+    errorSaveUserSignalSourceFailed: '保存用户信号源配置失败',
+    errorGetServerIPFailed: '获取服务器IP失败',
+
+    // Solution List Items
+    signalSourceSolution1: '点击"📡 {signalSource}"按钮配置API地址',
+    signalSourceSolution2: '或在交易员配置中禁用"使用币种池"和"使用OI Top"',
+    signalSourceSolution3: '或在交易员配置中设置自定义币种列表',
+
+    // Auth Error Messages
+    errorLoginFailed: '登录失败',
+    errorLoginFailedRetry: '登录失败，请重试',
+    errorUnknownError: '未知错误',
+    errorRegisterFailed: '注册失败',
+    errorRegisterFailedRetry: '注册失败，请重试',
+    errorVerifyOTPFailed: 'OTP验证失败，请重试',
+    errorCompleteRegistrationFailed: '注册完成失败，请重试',
+    errorResetPasswordFailed: '密码重置失败，请重试',
+
+    // Language Labels
+    languageChinese: '中文',
+    languageEnglish: 'English',
   },
 }
 
@@ -1343,4 +1448,22 @@ export function t(
   }
 
   return text
+}
+
+// Helper function to translate error messages
+// If the error message is a translation key (starts with 'error'), translate it
+// Otherwise return the message as-is
+export function translateError(
+  errorMessage: string | undefined | null,
+  language: Language
+): string {
+  if (!errorMessage) return ''
+  
+  // If it's a translation key (starts with 'error'), translate it
+  if (errorMessage.startsWith('error')) {
+    return t(errorMessage, language)
+  }
+  
+  // Otherwise return as-is (might be a server error message or already translated)
+  return errorMessage
 }

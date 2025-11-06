@@ -8,7 +8,7 @@ import type {
   Exchange,
 } from '../types'
 import { useLanguage } from '../contexts/LanguageContext'
-import { t, type Language } from '../i18n/translations'
+import { t, translateError, type Language } from '../i18n/translations'
 import { useAuth } from '../contexts/AuthContext'
 import { getExchangeIcon } from './ExchangeIcons'
 import { getModelIcon } from './ModelIcons'
@@ -230,7 +230,8 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
       mutateTraders()
     } catch (error) {
       console.error('Failed to create trader:', error)
-      alert(t('createTraderFailed', language))
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      alert(translateError(errorMessage, language) || t('errorCreateTraderFailed', language))
     }
   }
 
@@ -241,7 +242,8 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
       setShowEditModal(true)
     } catch (error) {
       console.error('Failed to fetch trader config:', error)
-      alert(t('getTraderConfigFailed', language))
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      alert(translateError(errorMessage, language) || t('errorGetTraderConfigFailed', language))
     }
   }
 
@@ -284,7 +286,8 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
       mutateTraders()
     } catch (error) {
       console.error('Failed to update trader:', error)
-      alert(t('updateTraderFailed', language))
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      alert(translateError(errorMessage, language) || t('errorUpdateTraderFailed', language))
     }
   }
 
@@ -296,7 +299,8 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
       mutateTraders()
     } catch (error) {
       console.error('Failed to delete trader:', error)
-      alert(t('deleteTraderFailed', language))
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      alert(translateError(errorMessage, language) || t('errorDeleteTraderFailed', language))
     }
   }
 
@@ -310,7 +314,8 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
       mutateTraders()
     } catch (error) {
       console.error('Failed to toggle trader:', error)
-      alert(t('operationFailed', language))
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      alert(translateError(errorMessage, language) || t('operationFailed', language))
     }
   }
 
@@ -776,9 +781,13 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
                   <strong>{t('solutions', language)}</strong>
                 </p>
                 <ul className="list-disc list-inside space-y-1 ml-2 mt-1">
-                  <li>点击"📡 {t('signalSource', language)}"按钮配置API地址</li>
-                  <li>或在交易员配置中禁用"使用币种池"和"使用OI Top"</li>
-                  <li>或在交易员配置中设置自定义币种列表</li>
+                  <li>
+                    {t('signalSourceSolution1', language, {
+                      signalSource: t('signalSource', language),
+                    })}
+                  </li>
+                  <li>{t('signalSourceSolution2', language)}</li>
+                  <li>{t('signalSourceSolution3', language)}</li>
                 </ul>
               </div>
               <button

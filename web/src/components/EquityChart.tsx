@@ -12,7 +12,7 @@ import {
 import useSWR from 'swr'
 import { api } from '../lib/api'
 import { useLanguage } from '../contexts/LanguageContext'
-import { t } from '../i18n/translations'
+import { t, translateError } from '../i18n/translations'
 import {
   AlertTriangle,
   BarChart3,
@@ -74,7 +74,7 @@ export function EquityChart({ traderId }: EquityChartProps) {
               {t('loadingError', language)}
             </div>
             <div className="text-sm" style={{ color: '#848E9C' }}>
-              {error.message}
+              {translateError(error.message, language)}
             </div>
           </div>
         </div>

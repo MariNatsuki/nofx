@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
-import { t } from '../i18n/translations'
+import { t, translateError } from '../i18n/translations'
 import HeaderBar from './landing/HeaderBar'
 import { getSystemConfig } from '../lib/config'
 
@@ -34,7 +34,7 @@ export function LoginPage() {
     setLoading(true)
     const result = await loginAdmin(adminPassword)
     if (!result.success) {
-      setError(result.message || t('loginFailed', language))
+      setError(translateError(result.message, language) || t('errorLoginFailed', language))
     }
     setLoading(false)
   }
@@ -52,7 +52,7 @@ export function LoginPage() {
         setStep('otp')
       }
     } else {
-      setError(result.message || t('loginFailed', language))
+      setError(translateError(result.message, language) || t('errorLoginFailed', language))
     }
 
     setLoading(false)

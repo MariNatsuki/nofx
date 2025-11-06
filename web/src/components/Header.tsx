@@ -43,7 +43,7 @@ export function Header({ simple = false }: HeaderProps) {
                   : { background: 'transparent', color: '#848E9C' }
               }
             >
-              中文
+              {t('languageChinese', language)}
             </button>
             <button
               onClick={() => setLanguage('en')}
@@ -54,7 +54,7 @@ export function Header({ simple = false }: HeaderProps) {
                   : { background: 'transparent', color: '#848E9C' }
               }
             >
-              EN
+              {t('languageEnglish', language)}
             </button>
           </div>
         </div>

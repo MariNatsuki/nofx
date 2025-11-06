@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
-import { t } from '../i18n/translations'
+import { t, translateError } from '../i18n/translations'
 import { getSystemConfig } from '../lib/config'
 import HeaderBar from './landing/HeaderBar'
 
@@ -63,7 +63,7 @@ export function RegisterPage() {
       setQrCodeURL(result.qrCodeURL || '')
       setStep('setup-otp')
     } else {
-      setError(result.message || t('registrationFailed', language))
+      setError(translateError(result.message, language) || t('errorRegisterFailedRetry', language))
     }
 
     setLoading(false)
@@ -81,7 +81,7 @@ export function RegisterPage() {
     const result = await completeRegistration(userID, otpCode)
 
     if (!result.success) {
-      setError(result.message || t('registrationFailed', language))
+      setError(translateError(result.message, language) || t('errorRegisterFailedRetry', language))
     }
     // 成功的话AuthContext会自动处理登录状态
 

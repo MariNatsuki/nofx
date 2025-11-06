@@ -94,6 +94,10 @@ func (s *Server) setupRoutes() {
 		// 系统配置（无需认证，用于前端判断是否管理员模式/注册是否开启）
 		api.GET("/config", s.handleGetSystemConfig)
 
+		// 公开的收益率历史数据（无需认证，竞赛用，支持管理员和非管理员模式）
+		api.GET("/equity-history", s.handleEquityHistory)
+		api.POST("/equity-history-batch", s.handleEquityHistoryBatch)
+
 		// 系统提示词模板管理（仅在非管理员模式下公开）
 		if !auth.IsAdminMode() {
 			// 系统提示词模板管理（无需认证）
@@ -104,8 +108,6 @@ func (s *Server) setupRoutes() {
 			api.GET("/traders", s.handlePublicTraderList)
 			api.GET("/competition", s.handlePublicCompetition)
 			api.GET("/top-traders", s.handleTopTraders)
-			api.GET("/equity-history", s.handleEquityHistory)
-			api.POST("/equity-history-batch", s.handleEquityHistoryBatch)
 			api.GET("/traders/:id/public-config", s.handleGetPublicTraderConfig)
 		}
 
@@ -1358,15 +1360,15 @@ func (s *Server) handleCompetition(c *gin.Context) {
 
 // handleEquityHistory 收益率历史数据
 func (s *Server) handleEquityHistory(c *gin.Context) {
-	_, traderID, err := s.getTraderFromQuery(c)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	traderID := c.Query("trader_id")
+	if traderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "trader_id参数不能为空"})
 		return
 	}
 
 	trader, err := s.traderManager.GetTrader(traderID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": "交易员不存在"})
 		return
 	}
 

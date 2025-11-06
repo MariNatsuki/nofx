@@ -110,10 +110,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, message: data.error }
       }
     } catch (error) {
-      return { success: false, message: '登录失败，请重试' }
+      return { success: false, message: 'errorLoginFailedRetry' }
     }
 
-    return { success: false, message: '未知错误' }
+    return { success: false, message: 'errorUnknownError' }
   }
 
   const loginAdmin = async (password: string) => {
@@ -138,10 +138,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         window.dispatchEvent(new PopStateEvent('popstate'))
         return { success: true }
       } else {
-        return { success: false, message: data.error || '登录失败' }
+        return { success: false, message: data.error || 'errorLoginFailed' }
       }
     } catch (e) {
-      return { success: false, message: '登录失败，请重试' }
+      return { success: false, message: 'errorLoginFailedRetry' }
     }
   }
 
@@ -182,7 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, message: data.error }
       }
     } catch (error) {
-      return { success: false, message: '注册失败，请重试' }
+      return { success: false, message: 'errorRegisterFailedRetry' }
     }
   }
 
@@ -215,7 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, message: data.error }
       }
     } catch (error) {
-      return { success: false, message: 'OTP验证失败，请重试' }
+      return { success: false, message: 'errorVerifyOTPFailed' }
     }
   }
 
@@ -248,7 +248,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, message: data.error }
       }
     } catch (error) {
-      return { success: false, message: '注册完成失败，请重试' }
+      return { success: false, message: 'errorCompleteRegistrationFailed' }
     }
   }
 
@@ -278,7 +278,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, message: data.error }
       }
     } catch (error) {
-      return { success: false, message: '密码重置失败，请重试' }
+      return { success: false, message: 'errorResetPasswordFailed' }
     }
   }
 
