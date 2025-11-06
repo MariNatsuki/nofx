@@ -779,9 +779,16 @@ func (tm *TraderManager) LoadUserTraders(database *config.Database, userID strin
 	// 为每个交易员加载配置
 	for _, traderCfg := range traders {
 		// 检查是否已经加载过这个交易员
-		if _, exists := tm.traders[traderCfg.ID]; exists {
-			log.Printf("⚠️ 交易员 %s 已经加载，跳过", traderCfg.Name)
-			continue
+		if existingTrader, exists := tm.traders[traderCfg.ID]; exists {
+			// 如果交易员正在运行，先停止它
+			status := existingTrader.GetStatus()
+			if isRunning, ok := status["is_running"].(bool); ok && isRunning {
+				log.Printf("🛑 交易员 %s 正在运行，先停止以应用新配置", traderCfg.Name)
+				existingTrader.Stop()
+			}
+			// 移除旧实例，准备重新加载
+			delete(tm.traders, traderCfg.ID)
+			log.Printf("🔄 交易员 %s 已存在，将重新加载以应用新配置", traderCfg.Name)
 		}
 
 		// 从已查询的列表中查找AI模型配置
