@@ -2108,15 +2108,6 @@ func (s *Server) handleTranslate(c *gin.Context) {
 		return
 	}
 
-	// Log response info for debugging
-	log.Printf("Translation API response status: %d, body length: %d bytes", resp.StatusCode, len(bodyBytes))
-	if len(bodyBytes) > 1000 {
-		log.Printf("Translation API response preview (first 500 chars): %s", string(bodyBytes[:500]))
-		log.Printf("Translation API response preview (last 500 chars): %s", string(bodyBytes[len(bodyBytes)-500:]))
-	} else {
-		log.Printf("Translation API full response: %s", string(bodyBytes))
-	}
-
 	// Check for HTTP errors
 	if resp.StatusCode != http.StatusOK {
 		// Try to parse error response
@@ -2167,19 +2158,7 @@ func (s *Server) handleTranslate(c *gin.Context) {
 	translatedText := apiResp.Data.Translations[0].TranslatedText
 	if translatedText == "" {
 		// Fallback to original text if translation is empty
-		log.Printf("Translation API returned empty translated text, using original")
 		translatedText = req.Text
-	} else {
-		// Log translation stats for verification
-		originalLen := len(req.Text)
-		translatedLen := len(translatedText)
-		log.Printf("Translation complete: original length=%d, translated length=%d", originalLen, translatedLen)
-		
-		// Check if translation seems incomplete (significantly shorter than original)
-		// This is a heuristic - some languages may naturally be shorter/longer
-		if translatedLen < originalLen/2 {
-			log.Printf("Warning: Translation appears unusually short, may be incomplete")
-		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
