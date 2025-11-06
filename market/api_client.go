@@ -148,3 +148,35 @@ func (c *APIClient) GetCurrentPrice(symbol string) (float64, error) {
 
 	return price, nil
 }
+
+// Get24hrTicker fetches 24hr ticker statistics for a symbol
+func (c *APIClient) Get24hrTicker(symbol string) (*Ticker24hr, error) {
+	url := fmt.Sprintf("%s/fapi/v1/ticker/24hr", baseURL)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	q := req.URL.Query()
+	q.Add("symbol", symbol)
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var ticker Ticker24hr
+	err = json.Unmarshal(body, &ticker)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ticker, nil
+}

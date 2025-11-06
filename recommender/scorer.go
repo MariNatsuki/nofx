@@ -13,12 +13,21 @@ func scoreCoin(symbol string, category CoinCategory, strategies []StrategyConfig
 	// Fetch market data using existing market.Get()
 	data, err := market.Get(symbol)
 	if err != nil {
-		log.Printf("Failed to get market data for %s: %v", symbol, err)
+		log.Printf("⚠️  推荐引擎: 获取 %s 市场数据失败: %v", symbol, err)
 		return nil
 	}
 
 	// Check OI threshold (skip low liquidity coins)
 	if !passesOIThreshold(data, category) {
+		oiValue := 0.0
+		if data.OpenInterest != nil && data.CurrentPrice > 0 {
+			oiValue = (data.OpenInterest.Latest * data.CurrentPrice) / 1_000_000
+		}
+		minThreshold := 10.0
+		if category == CategoryMajor {
+			minThreshold = 15.0
+		}
+		log.Printf("⚠️  推荐引擎: %s 未通过OI阈值 (OI值: %.2fM < %.1fM)", symbol, oiValue, minThreshold)
 		return nil
 	}
 
@@ -49,11 +58,16 @@ func scoreCoin(symbol string, category CoinCategory, strategies []StrategyConfig
 	}
 
 	if len(strategyScores) == 0 {
+		log.Printf("⚠️  推荐引擎: %s 无符合条件的策略信号 (所有策略评分 < 40)", symbol)
 		return nil // No qualifying signals
 	}
 
 	// Aggregate scores
-	return aggregateStrategyScores(symbol, category, data, strategyScores, btcETHLeverage, altcoinLeverage)
+	rec := aggregateStrategyScores(symbol, category, data, strategyScores, btcETHLeverage, altcoinLeverage)
+	if rec != nil {
+		log.Printf("✓ 推荐引擎: %s 评分完成 - Score: %.1f, Confidence: %d, Direction: %s", symbol, rec.Score, rec.Confidence, rec.Direction)
+	}
+	return rec
 }
 
 // calculateLongScore calculates long signal score
@@ -442,10 +456,9 @@ func calculateConfidence(score float64, strategy StrategyConfig) int {
 		return 0 // Too weak, disqualify
 	}
 
-	// Apply strategy minimum
-	if baseConfidence < strategy.MinConfidence {
-		return 0
-	}
+	// Don't return 0 here - let rankAndFilter handle the MinConfidence threshold
+	// This fixes the double filtering issue where calculateConfidence returns 0
+	// and then rankAndFilter also filters by a hardcoded threshold
 
 	// Cap at 100
 	if baseConfidence > 100 {

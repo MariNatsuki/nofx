@@ -14,15 +14,18 @@ func GenerateRecommendations(strategies []string, limit int, btcETHLeverage, alt
 	if err != nil {
 		return nil, fmt.Errorf("failed to get coin pool: %w", err)
 	}
+	log.Printf("📊 推荐引擎: 从币种池获取 %d 个币种", len(coins))
 
 	// 2. Categorize coins
 	majorCoins, altcoins := categorizeCoins(coins)
+	log.Printf("📊 推荐引擎: 分类完成 - 主流币种: %d, 山寨币: %d", len(majorCoins), len(altcoins))
 
 	// 3. Load strategy configurations
 	strategyConfigs := loadStrategyConfigs(strategies)
 
 	// 4. Analyze BTC direction (cache for 3 minutes)
 	btcDirection := analyzeBTCDirection()
+	log.Printf("📊 推荐引擎: BTC方向分析: %s", btcDirection)
 
 	// 5. Score major coins
 	majorRecs := []Recommendation{}
@@ -34,6 +37,7 @@ func GenerateRecommendations(strategies []string, limit int, btcETHLeverage, alt
 			majorRecs = append(majorRecs, *rec)
 		}
 	}
+	log.Printf("📊 推荐引擎: 主流币种评分完成 - %d 个币种通过评分", len(majorRecs))
 
 	// 6. Score altcoins
 	altcoinRecs := []Recommendation{}
@@ -45,10 +49,14 @@ func GenerateRecommendations(strategies []string, limit int, btcETHLeverage, alt
 			altcoinRecs = append(altcoinRecs, *rec)
 		}
 	}
+	log.Printf("📊 推荐引擎: 山寨币评分完成 - %d 个币种通过评分", len(altcoinRecs))
 
 	// 7. Rank and filter
-	majorRecs = rankAndFilter(majorRecs, min(5, limit))
-	altcoinRecs = rankAndFilter(altcoinRecs, limit)
+	majorRecsBeforeFilter := len(majorRecs)
+	majorRecs = rankAndFilter(majorRecs, min(5, limit), strategyConfigs)
+	altcoinRecsBeforeFilter := len(altcoinRecs)
+	altcoinRecs = rankAndFilter(altcoinRecs, limit, strategyConfigs)
+	log.Printf("📊 推荐引擎: 最终筛选 - 主流币种: %d/%d, 山寨币: %d/%d", len(majorRecs), majorRecsBeforeFilter, len(altcoinRecs), altcoinRecsBeforeFilter)
 
 	return &RecommendationResponse{
 		MajorCoins:        majorRecs,
@@ -73,7 +81,24 @@ func categorizeCoins(coins []pool.CoinInfo) (major, alt []pool.CoinInfo) {
 }
 
 // rankAndFilter ranks recommendations by score and filters to top N
-func rankAndFilter(recommendations []Recommendation, limit int) []Recommendation {
+func rankAndFilter(recommendations []Recommendation, limit int, strategyConfigs []StrategyConfig) []Recommendation {
+	// Calculate minimum confidence threshold from all strategies
+	minConfidenceThreshold := 60 // Default fallback
+	if len(strategyConfigs) > 0 {
+		minConfidenceThreshold = strategyConfigs[0].MinConfidence
+		for _, config := range strategyConfigs {
+			if config.MinConfidence < minConfidenceThreshold {
+				minConfidenceThreshold = config.MinConfidence
+			}
+		}
+		// Use a slightly lower threshold (5 points below minimum) to allow more recommendations
+		// This compensates for the double filtering that was removed
+		minConfidenceThreshold = minConfidenceThreshold - 5
+		if minConfidenceThreshold < 50 {
+			minConfidenceThreshold = 50 // Minimum floor
+		}
+	}
+
 	// Sort by composite score (score * confidence / 100)
 	sort.Slice(recommendations, func(i, j int) bool {
 		compositeI := recommendations[i].Score * (float64(recommendations[i].Confidence) / 100.0)
@@ -85,10 +110,10 @@ func rankAndFilter(recommendations []Recommendation, limit int) []Recommendation
 		return recommendations[i].Confidence > recommendations[j].Confidence
 	})
 
-	// Filter out low-quality
+	// Filter out low-quality using strategy-aware threshold
 	filtered := []Recommendation{}
 	for _, rec := range recommendations {
-		if rec.Score >= 40 && rec.Confidence >= 60 {
+		if rec.Score >= 40 && rec.Confidence >= minConfidenceThreshold {
 			filtered = append(filtered, rec)
 		}
 	}

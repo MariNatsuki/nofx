@@ -95,13 +95,24 @@ func SetDefaultCoins(coins []string) {
 func GetCoinPool() ([]CoinInfo, error) {
 	// 优先检查是否启用默认币种列表
 	if coinPoolConfig.UseDefaultCoins {
-		log.Printf("✓ 已启用默认主流币种列表")
+		log.Printf("✓ 已启用默认主流币种列表（来源: default）")
 		return convertSymbolsToCoins(defaultMainstreamCoins), nil
 	}
 
 	// 检查API URL是否配置
 	if strings.TrimSpace(coinPoolConfig.APIURL) == "" {
-		log.Printf("⚠️  未配置币种池API URL，使用默认主流币种列表")
+		// Try Binance API as fallback
+		log.Printf("⚠️  未配置币种池API URL，尝试使用Binance API...")
+		binanceCoins, err := FetchBinanceFuturesCoins()
+		if err == nil && len(binanceCoins) > 0 {
+			log.Printf("✓ 成功从Binance获取币种池（共%d个币种，来源: binance）", len(binanceCoins))
+			return binanceCoins, nil
+		}
+		if err != nil {
+			log.Printf("⚠️  Binance API获取失败: %v，使用默认主流币种列表", err)
+		} else {
+			log.Printf("⚠️  Binance API返回空列表，使用默认主流币种列表")
+		}
 		return convertSymbolsToCoins(defaultMainstreamCoins), nil
 	}
 
@@ -124,6 +135,7 @@ func GetCoinPool() ([]CoinInfo, error) {
 			if err := saveCoinPoolCache(coins); err != nil {
 				log.Printf("⚠️  保存币种池缓存失败: %v", err)
 			}
+			log.Printf("✓ 成功从自定义API获取币种池（共%d个币种，来源: custom_api）", len(coins))
 			return coins, nil
 		}
 
@@ -135,12 +147,23 @@ func GetCoinPool() ([]CoinInfo, error) {
 	log.Printf("⚠️  API请求全部失败，尝试使用历史缓存数据...")
 	cachedCoins, err := loadCoinPoolCache()
 	if err == nil {
-		log.Printf("✓ 使用历史缓存数据（共%d个币种）", len(cachedCoins))
+		log.Printf("✓ 使用历史缓存数据（共%d个币种，来源: cache）", len(cachedCoins))
 		return cachedCoins, nil
 	}
 
-	// 缓存也失败，使用默认主流币种
-	log.Printf("⚠️  无法加载缓存数据（最后错误: %v），使用默认主流币种列表", lastErr)
+	// 缓存也失败，尝试Binance API
+	log.Printf("⚠️  无法加载缓存数据（最后错误: %v），尝试使用Binance API...", lastErr)
+	binanceCoins, err := FetchBinanceFuturesCoins()
+	if err == nil && len(binanceCoins) > 0 {
+		log.Printf("✓ 成功从Binance获取币种池（共%d个币种，来源: binance）", len(binanceCoins))
+		return binanceCoins, nil
+	}
+	if err != nil {
+		log.Printf("⚠️  Binance API获取失败: %v", err)
+	}
+
+	// 最后使用默认主流币种
+	log.Printf("⚠️  所有数据源失败，使用默认主流币种列表（来源: default）")
 	return convertSymbolsToCoins(defaultMainstreamCoins), nil
 }
 
