@@ -714,6 +714,12 @@ func (s *Server) handleUpdateTrader(c *gin.Context) {
 	if err != nil {
 		log.Printf("⚠️ 重新加载用户交易员到内存失败: %v", err)
 	}
+	
+	err = s.traderManager.ReloadTrader(s.database, userID, traderID)
+	if err != nil {
+		log.Printf("⚠️ 重新加载交易员到内存失败: %v", err)
+		// 不返回错误，因为数据库更新已成功
+	}
 
 	log.Printf("✓ 更新交易员成功: %s (模型: %s, 交易所: %s)", req.Name, req.AIModelID, req.ExchangeID)
 

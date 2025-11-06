@@ -844,6 +844,177 @@ func (tm *TraderManager) LoadUserTraders(database *config.Database, userID strin
 	return nil
 }
 
+// ReloadTrader 重新加载指定交易员（停止、移除、重新加载）
+func (tm *TraderManager) ReloadTrader(database *config.Database, userID, traderID string) error {
+	// 第一步：检查并停止现有交易员
+	tm.mu.Lock()
+	var wasRunning bool
+	existingTrader, exists := tm.traders[traderID]
+	if exists {
+		// 获取运行状态
+		status := existingTrader.GetStatus()
+		if isRunning, ok := status["is_running"].(bool); ok {
+			wasRunning = isRunning
+		}
+		
+		// 如果正在运行，先停止
+		if wasRunning {
+			log.Printf("⏹ 停止交易员 %s 以重新加载配置", existingTrader.GetName())
+			existingTrader.Stop()
+		}
+		
+		// 从map中移除
+		delete(tm.traders, traderID)
+		log.Printf("🗑️ 已从内存中移除交易员 %s", traderID)
+	}
+	tm.mu.Unlock()
+
+	// 第二步：从数据库获取交易员配置
+	traders, err := database.GetTraders(userID)
+	if err != nil {
+		return fmt.Errorf("获取用户 %s 的交易员列表失败: %w", userID, err)
+	}
+
+	// 查找要重新加载的交易员
+	var traderCfg *config.TraderRecord
+	for _, t := range traders {
+		if t.ID == traderID {
+			traderCfg = t
+			break
+		}
+	}
+
+	if traderCfg == nil {
+		return fmt.Errorf("交易员 %s 不存在", traderID)
+	}
+
+	// 第三步：获取系统配置
+	maxDailyLossStr, _ := database.GetSystemConfig("max_daily_loss")
+	maxDrawdownStr, _ := database.GetSystemConfig("max_drawdown")
+	stopTradingMinutesStr, _ := database.GetSystemConfig("stop_trading_minutes")
+	defaultCoinsStr, _ := database.GetSystemConfig("default_coins")
+
+	// 获取用户信号源配置
+	var coinPoolURL, oiTopURL string
+	if userSignalSource, err := database.GetUserSignalSource(userID); err == nil {
+		coinPoolURL = userSignalSource.CoinPoolURL
+		oiTopURL = userSignalSource.OITopURL
+		log.Printf("📡 加载用户 %s 的信号源配置: COIN POOL=%s, OI TOP=%s", userID, coinPoolURL, oiTopURL)
+	} else {
+		log.Printf("🔍 用户 %s 暂未配置信号源", userID)
+	}
+
+	// 解析配置
+	maxDailyLoss := 10.0 // 默认值
+	if val, err := strconv.ParseFloat(maxDailyLossStr, 64); err == nil {
+		maxDailyLoss = val
+	}
+
+	maxDrawdown := 20.0 // 默认值
+	if val, err := strconv.ParseFloat(maxDrawdownStr, 64); err == nil {
+		maxDrawdown = val
+	}
+
+	stopTradingMinutes := 60 // 默认值
+	if val, err := strconv.Atoi(stopTradingMinutesStr); err == nil {
+		stopTradingMinutes = val
+	}
+
+	// 解析默认币种列表
+	var defaultCoins []string
+	if defaultCoinsStr != "" {
+		if err := json.Unmarshal([]byte(defaultCoinsStr), &defaultCoins); err != nil {
+			log.Printf("⚠️ 解析默认币种配置失败: %v，使用空列表", err)
+			defaultCoins = []string{}
+		}
+	}
+
+	// 第四步：获取AI模型和交易所配置
+	aiModels, err := database.GetAIModels(userID)
+	if err != nil {
+		return fmt.Errorf("获取用户 %s 的AI模型配置失败: %w", userID, err)
+	}
+
+	exchanges, err := database.GetExchanges(userID)
+	if err != nil {
+		return fmt.Errorf("获取用户 %s 的交易所配置失败: %w", userID, err)
+	}
+
+	// 查找AI模型配置
+	var aiModelCfg *config.AIModelConfig
+	// 优先精确匹配 model.ID（新版逻辑）
+	for _, model := range aiModels {
+		if model.ID == traderCfg.AIModelID {
+			aiModelCfg = model
+			break
+		}
+	}
+	// 如果没有精确匹配，尝试匹配 provider（兼容旧数据）
+	if aiModelCfg == nil {
+		for _, model := range aiModels {
+			if model.Provider == traderCfg.AIModelID {
+				aiModelCfg = model
+				log.Printf("⚠️  交易员 %s 使用旧版 provider 匹配: %s -> %s", traderCfg.Name, traderCfg.AIModelID, model.ID)
+				break
+			}
+		}
+	}
+
+	if aiModelCfg == nil {
+		return fmt.Errorf("交易员 %s 的AI模型 %s 不存在", traderCfg.Name, traderCfg.AIModelID)
+	}
+
+	if !aiModelCfg.Enabled {
+		return fmt.Errorf("交易员 %s 的AI模型 %s 未启用", traderCfg.Name, traderCfg.AIModelID)
+	}
+
+	// 查找交易所配置
+	var exchangeCfg *config.ExchangeConfig
+	for _, exchange := range exchanges {
+		if exchange.ID == traderCfg.ExchangeID {
+			exchangeCfg = exchange
+			break
+		}
+	}
+
+	if exchangeCfg == nil {
+		return fmt.Errorf("交易员 %s 的交易所 %s 不存在", traderCfg.Name, traderCfg.ExchangeID)
+	}
+
+	if !exchangeCfg.Enabled {
+		return fmt.Errorf("交易员 %s 的交易所 %s 未启用", traderCfg.Name, traderCfg.ExchangeID)
+	}
+
+	// 第五步：重新加载交易员
+	tm.mu.Lock()
+	err = tm.loadSingleTrader(traderCfg, aiModelCfg, exchangeCfg, coinPoolURL, oiTopURL, maxDailyLoss, maxDrawdown, stopTradingMinutes, defaultCoins, database, userID)
+	if err != nil {
+		tm.mu.Unlock()
+		return fmt.Errorf("重新加载交易员失败: %w", err)
+	}
+
+	// 第六步：如果之前正在运行，重新启动
+	if wasRunning {
+		reloadedTrader, exists := tm.traders[traderID]
+		if exists {
+			log.Printf("▶️ 交易员 %s 之前正在运行，重新启动", traderCfg.Name)
+			go func() {
+				if err := reloadedTrader.Run(); err != nil {
+					log.Printf("❌ 交易员 %s 运行错误: %v", traderCfg.Name, err)
+				}
+			}()
+			// 更新数据库中的运行状态
+			if err := database.UpdateTraderStatus(userID, traderID, true); err != nil {
+				log.Printf("⚠️ 更新交易员状态失败: %v", err)
+			}
+		}
+	}
+	tm.mu.Unlock()
+
+	log.Printf("✓ 交易员 %s 已重新加载", traderCfg.Name)
+	return nil
+}
+
 // loadSingleTrader 加载单个交易员（从现有代码提取的公共逻辑）
 func (tm *TraderManager) loadSingleTrader(traderCfg *config.TraderRecord, aiModelCfg *config.AIModelConfig, exchangeCfg *config.ExchangeConfig, coinPoolURL, oiTopURL string, maxDailyLoss, maxDrawdown float64, stopTradingMinutes int, defaultCoins []string, database *config.Database, userID string) error {
 	// 处理交易币种列表
