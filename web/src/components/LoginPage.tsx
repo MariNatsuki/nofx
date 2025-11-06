@@ -34,7 +34,10 @@ export function LoginPage() {
     setLoading(true)
     const result = await loginAdmin(adminPassword)
     if (!result.success) {
-      setError(translateError(result.message, language) || t('errorLoginFailed', language))
+      setError(
+        translateError(result.message, language) ||
+          t('errorLoginFailed', language)
+      )
     }
     setLoading(false)
   }
@@ -52,7 +55,10 @@ export function LoginPage() {
         setStep('otp')
       }
     } else {
-      setError(translateError(result.message, language) || t('errorLoginFailed', language))
+      setError(
+        translateError(result.message, language) ||
+          t('errorLoginFailed', language)
+      )
     }
 
     setLoading(false)

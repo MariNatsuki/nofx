@@ -41,7 +41,10 @@ export function ResetPasswordPage() {
         window.dispatchEvent(new PopStateEvent('popstate'))
       }, 3000)
     } else {
-      setError(translateError(result.message, language) || t('errorResetPasswordFailed', language))
+      setError(
+        translateError(result.message, language) ||
+          t('errorResetPasswordFailed', language)
+      )
     }
 
     setLoading(false)

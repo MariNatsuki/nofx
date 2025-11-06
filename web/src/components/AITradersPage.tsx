@@ -132,19 +132,21 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
   }, [user, token])
 
   // 只显示已配置的模型和交易所（有API Key的才算配置过）
-  const configuredModels = allModels?.filter((m) => m.apiKey && m.apiKey.trim() !== '') || []
-  const configuredExchanges = allExchanges?.filter((e) => {
-    // Aster 交易所检查特殊字段
-    if (e.id === 'aster') {
-      return e.asterUser && e.asterUser.trim() !== ''
-    }
-    // Hyperliquid 只检查私钥
-    if (e.id === 'hyperliquid') {
+  const configuredModels =
+    allModels?.filter((m) => m.apiKey && m.apiKey.trim() !== '') || []
+  const configuredExchanges =
+    allExchanges?.filter((e) => {
+      // Aster 交易所检查特殊字段
+      if (e.id === 'aster') {
+        return e.asterUser && e.asterUser.trim() !== ''
+      }
+      // Hyperliquid 只检查私钥
+      if (e.id === 'hyperliquid') {
+        return e.apiKey && e.apiKey.trim() !== ''
+      }
+      // 其他交易所检查 apiKey
       return e.apiKey && e.apiKey.trim() !== ''
-    }
-    // 其他交易所检查 apiKey
-    return e.apiKey && e.apiKey.trim() !== ''
-  }) || []
+    }) || []
 
   // 只在创建交易员时使用已启用且配置完整的
   const enabledModels = allModels?.filter((m) => m.enabled && m.apiKey) || []
@@ -185,9 +187,7 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
 
   // 检查交易所是否正在被运行中的交易员使用（用于UI禁用）
   const isExchangeInUse = (exchangeId: string) => {
-    return (
-      traders?.some((t) => t.exchange_id === exchangeId && t.is_running)
-    )
+    return traders?.some((t) => t.exchange_id === exchangeId && t.is_running)
   }
 
   // 检查模型是否被任何交易员使用（包括停止状态的）
@@ -230,8 +230,12 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
       mutateTraders()
     } catch (error) {
       console.error('Failed to create trader:', error)
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      alert(translateError(errorMessage, language) || t('errorCreateTraderFailed', language))
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      alert(
+        translateError(errorMessage, language) ||
+          t('errorCreateTraderFailed', language)
+      )
     }
   }
 
@@ -242,8 +246,12 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
       setShowEditModal(true)
     } catch (error) {
       console.error('Failed to fetch trader config:', error)
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      alert(translateError(errorMessage, language) || t('errorGetTraderConfigFailed', language))
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      alert(
+        translateError(errorMessage, language) ||
+          t('errorGetTraderConfigFailed', language)
+      )
     }
   }
 
@@ -286,8 +294,12 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
       mutateTraders()
     } catch (error) {
       console.error('Failed to update trader:', error)
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      alert(translateError(errorMessage, language) || t('errorUpdateTraderFailed', language))
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      alert(
+        translateError(errorMessage, language) ||
+          t('errorUpdateTraderFailed', language)
+      )
     }
   }
 
@@ -299,8 +311,12 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
       mutateTraders()
     } catch (error) {
       console.error('Failed to delete trader:', error)
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      alert(translateError(errorMessage, language) || t('errorDeleteTraderFailed', language))
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      alert(
+        translateError(errorMessage, language) ||
+          t('errorDeleteTraderFailed', language)
+      )
     }
   }
 
@@ -314,8 +330,11 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
       mutateTraders()
     } catch (error) {
       console.error('Failed to toggle trader:', error)
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      alert(translateError(errorMessage, language) || t('operationFailed', language))
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      alert(
+        translateError(errorMessage, language) || t('operationFailed', language)
+      )
     }
   }
 

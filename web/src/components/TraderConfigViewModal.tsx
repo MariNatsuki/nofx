@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import type { TraderConfigData } from '../types'
+import { useLanguage } from '../contexts/LanguageContext'
+import { t } from '../i18n/translations'
 
 // 提取下划线后面的名称部分
 function getShortName(fullName: string): string {
@@ -18,6 +20,7 @@ export function TraderConfigViewModal({
   onClose,
   traderData,
 }: TraderConfigViewModalProps) {
+  const { language } = useLanguage()
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
   if (!isOpen || !traderData) return null
@@ -51,7 +54,9 @@ export function TraderConfigViewModal({
         border: `1px solid ${copiedField === fieldName ? 'rgba(14, 203, 129, 0.3)' : 'rgba(240, 185, 11, 0.3)'}`,
       }}
     >
-      {copiedField === fieldName ? '✓ 已复制' : '📋 复制'}
+      {copiedField === fieldName
+        ? t('copied', language)
+        : t('copyButton', language)}
     </button>
   )
 
@@ -70,7 +75,11 @@ export function TraderConfigViewModal({
       <span className="text-sm text-[#848E9C] font-medium">{label}</span>
       <div className="flex items-center text-right">
         <span className="text-sm text-[#EAECEF] font-mono">
-          {typeof value === 'boolean' ? (value ? '是' : '否') : value}
+          {typeof value === 'boolean'
+            ? value
+              ? t('yes', language)
+              : t('no', language)
+            : value}
         </span>
         {copyable && typeof value === 'string' && value && (
           <CopyButton text={value} fieldName={fieldName} />
@@ -92,9 +101,13 @@ export function TraderConfigViewModal({
               <span className="text-lg">👁️</span>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#EAECEF]">交易员配置</h2>
+              <h2 className="text-xl font-bold text-[#EAECEF]">
+                {t('traderConfig', language)}
+              </h2>
               <p className="text-sm text-[#848E9C] mt-1">
-                {traderData.trader_name} 的配置信息
+                {t('traderConfigInfo', language, {
+                  name: traderData.trader_name,
+                })}
               </p>
             </div>
           </div>
@@ -109,7 +122,9 @@ export function TraderConfigViewModal({
               }
             >
               <span>{traderData.is_running ? '●' : '○'}</span>
-              {traderData.is_running ? '运行中' : '已停止'}
+              {traderData.is_running
+                ? t('running', language)
+                : t('stopped', language)}
             </div>
             <button
               onClick={onClose}
@@ -125,31 +140,31 @@ export function TraderConfigViewModal({
           {/* Basic Info */}
           <div className="bg-[#0B0E11] border border-[#2B3139] rounded-lg p-5">
             <h3 className="text-lg font-semibold text-[#EAECEF] mb-4 flex items-center gap-2">
-              🤖 基础信息
+              {t('basicInfo', language)}
             </h3>
             <div className="space-y-3">
               <InfoRow
-                label="交易员ID"
+                label={t('traderId', language)}
                 value={traderData.trader_id || ''}
                 copyable
                 fieldName="trader_id"
               />
               <InfoRow
-                label="交易员名称"
+                label={t('traderName', language)}
                 value={traderData.trader_name}
                 copyable
                 fieldName="trader_name"
               />
               <InfoRow
-                label="AI模型"
+                label={t('aiModel', language)}
                 value={getShortName(traderData.ai_model).toUpperCase()}
               />
               <InfoRow
-                label="交易所"
+                label={t('exchange', language)}
                 value={getShortName(traderData.exchange_id).toUpperCase()}
               />
               <InfoRow
-                label="初始余额"
+                label={t('initialBalance', language)}
                 value={`$${traderData.initial_balance.toLocaleString()}`}
               />
             </div>
@@ -158,24 +173,30 @@ export function TraderConfigViewModal({
           {/* Trading Configuration */}
           <div className="bg-[#0B0E11] border border-[#2B3139] rounded-lg p-5">
             <h3 className="text-lg font-semibold text-[#EAECEF] mb-4 flex items-center gap-2">
-              ⚖️ 交易配置
+              {t('tradingConfig', language)}
             </h3>
             <div className="space-y-3">
               <InfoRow
-                label="保证金模式"
-                value={traderData.is_cross_margin ? '全仓' : '逐仓'}
+                label={t('marginMode', language)}
+                value={
+                  traderData.is_cross_margin
+                    ? t('crossMargin', language)
+                    : t('isolatedMargin', language)
+                }
               />
               <InfoRow
-                label="BTC/ETH 杠杆"
+                label={t('btcEthLeverageLabel', language)}
                 value={`${traderData.btc_eth_leverage}x`}
               />
               <InfoRow
-                label="山寨币杠杆"
+                label={t('altcoinLeverageLabel', language)}
                 value={`${traderData.altcoin_leverage}x`}
               />
               <InfoRow
-                label="交易币种"
-                value={traderData.trading_symbols || '使用默认币种'}
+                label={t('tradingSymbolsLabel', language)}
+                value={
+                  traderData.trading_symbols || t('useDefaultSymbols', language)
+                }
                 copyable
                 fieldName="trading_symbols"
               />
@@ -185,14 +206,17 @@ export function TraderConfigViewModal({
           {/* Signal Sources */}
           <div className="bg-[#0B0E11] border border-[#2B3139] rounded-lg p-5">
             <h3 className="text-lg font-semibold text-[#EAECEF] mb-4 flex items-center gap-2">
-              📡 信号源配置
+              {t('signalSourceConfig', language)}
             </h3>
             <div className="space-y-3">
               <InfoRow
-                label="Coin Pool 信号"
+                label={t('coinPoolSignal', language)}
                 value={traderData.use_coin_pool}
               />
-              <InfoRow label="OI Top 信号" value={traderData.use_oi_top} />
+              <InfoRow
+                label={t('oiTopSignal', language)}
+                value={traderData.use_oi_top}
+              />
             </div>
           </div>
 
@@ -200,7 +224,7 @@ export function TraderConfigViewModal({
           <div className="bg-[#0B0E11] border border-[#2B3139] rounded-lg p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-[#EAECEF] flex items-center gap-2">
-                💬 交易策略提示词
+                {t('tradingStrategyPrompt', language)}
               </h3>
               {traderData.custom_prompt && (
                 <CopyButton
@@ -211,15 +235,15 @@ export function TraderConfigViewModal({
             </div>
             <div className="space-y-3">
               <InfoRow
-                label="覆盖默认提示词"
+                label={t('overrideDefaultPrompt', language)}
                 value={traderData.override_base_prompt}
               />
               {traderData.custom_prompt ? (
                 <div>
                   <div className="text-sm text-[#848E9C] mb-2">
                     {traderData.override_base_prompt
-                      ? '自定义提示词'
-                      : '附加提示词'}
+                      ? t('customPrompt', language)
+                      : t('additionalPrompt', language)}
                     ：
                   </div>
                   <div
@@ -238,7 +262,7 @@ export function TraderConfigViewModal({
                   className="text-sm text-[#848E9C] italic p-3 rounded border"
                   style={{ border: '1px solid #2B3139' }}
                 >
-                  未设置自定义提示词，使用系统默认策略
+                  {t('noCustomPromptSet', language)}
                 </div>
               )}
             </div>
@@ -251,7 +275,7 @@ export function TraderConfigViewModal({
             onClick={onClose}
             className="px-6 py-3 bg-[#2B3139] text-[#EAECEF] rounded-lg hover:bg-[#404750] transition-all duration-200 border border-[#404750]"
           >
-            关闭
+            {t('close', language)}
           </button>
           <button
             onClick={() =>
@@ -262,7 +286,9 @@ export function TraderConfigViewModal({
             }
             className="px-6 py-3 bg-gradient-to-r from-[#F0B90B] to-[#E1A706] text-black rounded-lg hover:from-[#E1A706] hover:to-[#D4951E] transition-all duration-200 font-medium shadow-lg"
           >
-            {copiedField === 'full_config' ? '✓ 已复制配置' : '📋 复制完整配置'}
+            {copiedField === 'full_config'
+              ? t('copiedConfig', language)
+              : t('copyFullConfig', language)}
           </button>
         </div>
       </div>

@@ -710,11 +710,14 @@ export const translations = {
     errorGetEquityHistoryFailed: 'Failed to get historical data',
     errorGetEquityHistoryBatchFailed: 'Failed to get batch historical data',
     errorGetTopTradersFailed: 'Failed to get top 5 traders',
-    errorGetPublicTraderConfigFailed: 'Failed to get public trader configuration',
+    errorGetPublicTraderConfigFailed:
+      'Failed to get public trader configuration',
     errorGetPerformanceFailed: 'Failed to get AI learning data',
     errorGetCompetitionFailed: 'Failed to get competition data',
-    errorGetUserSignalSourceFailed: 'Failed to get user signal source configuration',
-    errorSaveUserSignalSourceFailed: 'Failed to save user signal source configuration',
+    errorGetUserSignalSourceFailed:
+      'Failed to get user signal source configuration',
+    errorSaveUserSignalSourceFailed:
+      'Failed to save user signal source configuration',
     errorGetServerIPFailed: 'Failed to get server IP',
 
     // Solution List Items
@@ -722,8 +725,7 @@ export const translations = {
       "Click '📡 {signalSource}' button to configure API address",
     signalSourceSolution2:
       "Or disable 'Use Coin Pool' and 'Use OI Top' in trader configuration",
-    signalSourceSolution3:
-      'Or set custom coin list in trader configuration',
+    signalSourceSolution3: 'Or set custom coin list in trader configuration',
 
     // Auth Error Messages
     errorLoginFailed: 'Login failed',
@@ -732,12 +734,68 @@ export const translations = {
     errorRegisterFailed: 'Registration failed, please retry',
     errorRegisterFailedRetry: 'Registration failed, please retry',
     errorVerifyOTPFailed: 'OTP verification failed, please retry',
-    errorCompleteRegistrationFailed: 'Registration completion failed, please retry',
+    errorCompleteRegistrationFailed:
+      'Registration completion failed, please retry',
     errorResetPasswordFailed: 'Password reset failed, please retry',
 
     // Language Labels
     languageChinese: '中文',
     languageEnglish: 'English',
+
+    // AI Learning Strategy Feedback Messages
+    sharpeRatioExcellent:
+      '✨ AI strategy is highly effective! Risk-adjusted returns are excellent, can moderately increase position size but maintain discipline.',
+    sharpeRatioGood:
+      '✅ Strategy performance is stable, risk-return balance is good, continue with current strategy.',
+    sharpeRatioFair:
+      '⚠️ Returns are positive but volatility is high, AI is optimizing strategy and reducing risk.',
+    sharpeRatioPoor:
+      '🚨 Current strategy needs adjustment! AI has automatically entered conservative mode, reducing position size and trading frequency.',
+    profitFactorExcellent:
+      '🔥 Profitability is excellent! For every $1 lost, can earn {factor}, AI strategy performance is excellent.',
+    profitFactorGood:
+      '✓ Strategy is consistently profitable, profit-loss ratio is healthy, continue disciplined trading.',
+    profitFactorFair:
+      '⚠️ Strategy is slightly profitable but needs optimization, AI is adjusting position size and stop-loss strategy.',
+    profitFactorPoor:
+      '❌ Average loss exceeds profit, need to adjust strategy or reduce trading frequency.',
+
+    // Trader Config Modal
+    traderConfig: 'Trader Configuration',
+    traderConfigInfo: "{name}'s configuration information",
+    copied: '✓ Copied',
+    copyButton: '📋 Copy',
+    yes: 'Yes',
+    no: 'No',
+    basicInfo: '🤖 Basic Information',
+    traderId: 'Trader ID',
+    aiModel: 'AI Model',
+    exchange: 'Exchange',
+    tradingConfig: '⚖️ Trading Configuration',
+    marginMode: 'Margin Mode',
+    crossMargin: 'Cross Margin',
+    isolatedMargin: 'Isolated Margin',
+    btcEthLeverageLabel: 'BTC/ETH Leverage',
+    altcoinLeverageLabel: 'Altcoin Leverage',
+    tradingSymbolsLabel: 'Trading Symbols',
+    useDefaultSymbols: 'Use default symbols',
+    coinPoolSignal: 'Coin Pool Signal',
+    oiTopSignal: 'OI Top Signal',
+    tradingStrategyPrompt: '💬 Trading Strategy Prompt',
+    overrideDefaultPrompt: 'Override Default Prompt',
+    customPrompt: 'Custom Prompt',
+    additionalPrompt: 'Additional Prompt',
+    noCustomPromptSet: 'No custom prompt set, using system default strategy',
+    close: 'Close',
+    copiedConfig: '✓ Copied Configuration',
+    copyFullConfig: '📋 Copy Full Configuration',
+
+    // Registration Form
+    betaCodeRequired: 'Beta code required during beta period',
+    betaCodeLabel: 'Beta Code *',
+    betaCodePlaceholder: 'Enter 6-digit beta code',
+    betaCodeDescription:
+      'Beta code consists of 6 alphanumeric characters, case-sensitive',
   },
   zh: {
     // Header
@@ -1430,6 +1488,55 @@ export const translations = {
     // Language Labels
     languageChinese: '中文',
     languageEnglish: 'English',
+
+    // AI Learning Strategy Feedback Messages
+    sharpeRatioExcellent:
+      '✨ AI策略非常有效！风险调整后收益优异，可适度扩大仓位但保持纪律。',
+    sharpeRatioGood: '✅ 策略表现稳健，风险收益平衡良好，继续保持当前策略。',
+    sharpeRatioFair: '⚠️ 收益为正但波动较大，AI正在优化策略，降低风险。',
+    sharpeRatioPoor:
+      '🚨 当前策略需要调整！AI已自动进入保守模式，减少仓位和交易频率。',
+    profitFactorExcellent:
+      '🔥 盈利能力出色！每亏1元能赚{factor}元，AI策略表现优异。',
+    profitFactorGood: '✓ 策略稳定盈利，盈亏比健康，继续保持纪律性交易。',
+    profitFactorFair: '⚠️ 策略略有盈利但需优化，AI正在调整仓位和止损策略。',
+    profitFactorPoor: '❌ 平均亏损大于盈利，需要调整策略或降低交易频率。',
+
+    // Trader Config Modal
+    traderConfig: '交易员配置',
+    traderConfigInfo: '{name} 的配置信息',
+    copied: '✓ 已复制',
+    copyButton: '📋 复制',
+    yes: '是',
+    no: '否',
+    basicInfo: '🤖 基础信息',
+    traderId: '交易员ID',
+    aiModel: 'AI模型',
+    exchange: '交易所',
+    tradingConfig: '⚖️ 交易配置',
+    marginMode: '保证金模式',
+    crossMargin: '全仓',
+    isolatedMargin: '逐仓',
+    btcEthLeverageLabel: 'BTC/ETH 杠杆',
+    altcoinLeverageLabel: '山寨币杠杆',
+    tradingSymbolsLabel: '交易币种',
+    useDefaultSymbols: '使用默认币种',
+    coinPoolSignal: 'Coin Pool 信号',
+    oiTopSignal: 'OI Top 信号',
+    tradingStrategyPrompt: '💬 交易策略提示词',
+    overrideDefaultPrompt: '覆盖默认提示词',
+    customPrompt: '自定义提示词',
+    additionalPrompt: '附加提示词',
+    noCustomPromptSet: '未设置自定义提示词，使用系统默认策略',
+    close: '关闭',
+    copiedConfig: '✓ 已复制配置',
+    copyFullConfig: '📋 复制完整配置',
+
+    // Registration Form
+    betaCodeRequired: '内测期间，注册需要提供内测码',
+    betaCodeLabel: '内测码 *',
+    betaCodePlaceholder: '请输入6位内测码',
+    betaCodeDescription: '内测码由6位字母数字组成，区分大小写',
   },
 }
 
@@ -1458,12 +1565,12 @@ export function translateError(
   language: Language
 ): string {
   if (!errorMessage) return ''
-  
+
   // If it's a translation key (starts with 'error'), translate it
   if (errorMessage.startsWith('error')) {
     return t(errorMessage, language)
   }
-  
+
   // Otherwise return as-is (might be a server error message or already translated)
   return errorMessage
 }

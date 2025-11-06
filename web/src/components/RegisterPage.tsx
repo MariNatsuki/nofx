@@ -49,7 +49,7 @@ export function RegisterPage() {
     }
 
     if (betaMode && !betaCode.trim()) {
-      setError('内测期间，注册需要提供内测码')
+      setError(t('betaCodeRequired', language))
       return
     }
 
@@ -63,7 +63,10 @@ export function RegisterPage() {
       setQrCodeURL(result.qrCodeURL || '')
       setStep('setup-otp')
     } else {
-      setError(translateError(result.message, language) || t('errorRegisterFailedRetry', language))
+      setError(
+        translateError(result.message, language) ||
+          t('errorRegisterFailedRetry', language)
+      )
     }
 
     setLoading(false)
@@ -81,7 +84,10 @@ export function RegisterPage() {
     const result = await completeRegistration(userID, otpCode)
 
     if (!result.success) {
-      setError(translateError(result.message, language) || t('errorRegisterFailedRetry', language))
+      setError(
+        translateError(result.message, language) ||
+          t('errorRegisterFailedRetry', language)
+      )
     }
     // 成功的话AuthContext会自动处理登录状态
 
@@ -214,7 +220,7 @@ export function RegisterPage() {
                       className="block text-sm font-semibold mb-2"
                       style={{ color: '#EAECEF' }}
                     >
-                      内测码 *
+                      {t('betaCodeLabel', language)}
                     </label>
                     <input
                       type="text"
@@ -232,12 +238,12 @@ export function RegisterPage() {
                         border: '1px solid #2B3139',
                         color: '#EAECEF',
                       }}
-                      placeholder="请输入6位内测码"
+                      placeholder={t('betaCodePlaceholder', language)}
                       maxLength={6}
                       required={betaMode}
                     />
                     <p className="text-xs mt-1" style={{ color: '#848E9C' }}>
-                      内测码由6位字母数字组成，区分大小写
+                      {t('betaCodeDescription', language)}
                     </p>
                   </div>
                 )}
