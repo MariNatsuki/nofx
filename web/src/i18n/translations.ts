@@ -535,6 +535,7 @@ export const translations = {
     faqCategoryTechnical: 'Technical Issues',
     faqCategoryAI: 'AI & Model Questions',
     faqCategoryData: 'Data & Privacy',
+    faqCategoryStrategies: 'Trading Strategies',
 
     // FAQ Questions & Answers - General
     faqWhatIsNOFX: 'What is NOFX?',
@@ -690,6 +691,39 @@ export const translations = {
     faqGetHelp: 'Where can I get help?',
     faqGetHelpAnswer:
       'Check GitHub Discussions, join our Telegram Community, or open an issue on GitHub.',
+
+    // Trading Strategies
+    faqHowToChooseStrategy: 'How do I choose a trading strategy?',
+    faqHowToChooseStrategyAnswer:
+      'NOFX offers 7 strategies: default (balanced), adaptive (maximum safety, confidence ≥85), adaptive_relaxed (more trading, confidence ≥80), risk_first (capital preservation priority), nof1 (conservative quality), Hansen (English/Hyperliquid), and taro_long (advanced autonomous). Choose based on your risk tolerance: Maximum safety → adaptive; Balanced safety + activity → adaptive_relaxed; Capital preservation → risk_first; Advanced users → taro_long; Simple/beginner → default or nof1.',
+
+    faqStrategyDifferences: 'What are the differences between strategies?',
+    faqStrategyDifferencesAnswer:
+      'Strategies differ in: 1) Confidence thresholds (adaptive: ≥85, adaptive_relaxed: ≥80, others: ≥75-80); 2) Trade frequency (adaptive: very low, adaptive_relaxed: 8-15/day, others: 2-4/day); 3) Risk level (adaptive/risk_first: very low, taro_long: medium-high); 4) Features (adaptive: BTC status check, 8-item checklist, anti-fake-breakout; risk_first: volatility adaptation, TP ladder; taro_long: full AI autonomy). All prioritize capital preservation and quality over quantity.',
+
+    faqSafestStrategy: 'Which strategy is the safest?',
+    faqSafestStrategyAnswer:
+      'The adaptive strategy is the safest with: Highest confidence threshold (≥85), strictest validation (5/8 checklist items, BTC status check), anti-fake-breakout detection, continuous loss protection (2 losses = 45min pause, 3 = 24h), and objective confidence scoring. The risk_first strategy is also very safe, prioritizing capital preservation with volatility-adaptive position sizing and systematic exit strategies.',
+
+    faqMostFrequentStrategy: 'Which strategy trades most frequently?',
+    faqMostFrequentStrategyAnswer:
+      'The adaptive_relaxed strategy trades most frequently (8-15 trades/day expected) while maintaining core risk controls. It has relaxed thresholds: confidence ≥80 (vs 85), cooldown 6min (vs 9min), 2 timeframes (vs 3), 4/8 checklist (vs 5/8), and shorter loss pauses. The taro_long strategy can also trade frequently but frequency varies based on AI autonomous decisions.',
+
+    faqSwitchStrategies: 'Can I switch strategies for an existing trader?',
+    faqSwitchStrategiesAnswer:
+      'Yes! You can change the system prompt template in the trader configuration. Go to the trader settings, select a different "System Prompt Template" from the dropdown (default, adaptive, adaptive_relaxed, risk_first, nof1, Hansen, or taro_long). The change takes effect when the trader restarts or on the next decision cycle. Note: Changing strategies doesn\'t affect existing positions, but new decisions will follow the new strategy rules.',
+
+    faqStrategyRiskPriority: 'How do strategies prioritize risk vs profit?',
+    faqStrategyRiskPriorityAnswer:
+      'All strategies prioritize capital preservation first, but with different emphasis: adaptive/risk_first/nof1 → Capital preservation > Profit (very conservative); adaptive_relaxed → Balanced (more trading but still safe); default/Hansen → Balanced (standard risk management); taro_long → AI-determined (autonomous risk assessment). The risk_first strategy explicitly states "Capital Preservation > Profit" and uses volatility-adaptive sizing. The adaptive strategy uses "doubt-first principle" - when uncertain, always choose wait.',
+
+    faqStrategyComparison: 'Can you compare all strategies in a table?',
+    faqStrategyComparisonAnswer:
+      'Quick comparison: | Strategy | Confidence | Frequency | Risk | Best For | |----------|------------|-----------|------|----------| | adaptive | ≥85 | Very low | Very low | Maximum protection | | adaptive_relaxed | ≥80 | 8-15/day | Low | More activity, still safe | | risk_first | ≥75 | 2-4/day | Very low | Capital preservation | | nof1 | ≥80-85 | 2-4/day | Low | Conservative quality | | default | ≥75 | 2-4/day | Medium | Beginners | | Hansen | Variable | 2-4/day | Medium | English/Hyperliquid | | taro_long | AI-determined | Variable | Medium-High | Advanced autonomy |',
+
+    faqStrategyCustomization: 'Can I customize or modify strategies?',
+    faqStrategyCustomizationAnswer:
+      'Yes! You can customize strategies in two ways: 1) Custom Prompt: Add your own trading rules that supplement or override the base prompt. Go to trader settings → "Custom Prompt" field. You can choose to override the base prompt entirely or supplement it. 2) System Prompt Template: Select from 7 pre-built templates. For advanced users, you can edit the prompt files in the prompts/ directory (default.txt, adaptive.txt, etc.) to create your own custom strategy templates.',
 
     // Error Messages (API)
     errorGetTradersFailed: 'Failed to get trader list',
@@ -1398,6 +1432,7 @@ export const translations = {
     faqCategoryTechnical: '技术问题',
     faqCategoryAI: 'AI与模型问题',
     faqCategoryData: '数据与隐私',
+    faqCategoryStrategies: '交易策略',
 
     // FAQ Questions & Answers - General
     faqWhatIsNOFX: 'NOFX 是什么？',
@@ -1553,6 +1588,39 @@ export const translations = {
     faqGetHelp: '在哪里可以获得帮助？',
     faqGetHelpAnswer:
       '查看 GitHub Discussions、加入 Telegram 社区或在 GitHub 上提出 issue。',
+
+    // Trading Strategies
+    faqHowToChooseStrategy: '如何选择交易策略？',
+    faqHowToChooseStrategyAnswer:
+      'NOFX 提供 7 种策略：default（平衡型）、adaptive（最高安全性，信心度≥85）、adaptive_relaxed（更多交易，信心度≥80）、risk_first（资本保全优先）、nof1（保守质量型）、Hansen（英文/Hyperliquid）、taro_long（高级自主型）。根据风险承受能力选择：最高安全性 → adaptive；平衡安全性与活跃度 → adaptive_relaxed；资本保全 → risk_first；高级用户 → taro_long；简单/初学者 → default 或 nof1。',
+
+    faqStrategyDifferences: '策略之间有什么区别？',
+    faqStrategyDifferencesAnswer:
+      '策略在以下方面不同：1) 信心度阈值（adaptive：≥85，adaptive_relaxed：≥80，其他：≥75-80）；2) 交易频率（adaptive：极低，adaptive_relaxed：8-15 笔/天，其他：2-4 笔/天）；3) 风险水平（adaptive/risk_first：极低，taro_long：中高）；4) 特性（adaptive：BTC 状态检查、8 项清单、防假突破；risk_first：波动性适应、TP 阶梯；taro_long：完全 AI 自主）。所有策略都优先考虑资本保全和质量而非数量。',
+
+    faqSafestStrategy: '哪种策略最安全？',
+    faqSafestStrategyAnswer:
+      'adaptive 策略最安全，具有：最高信心度阈值（≥85）、最严格的验证（5/8 清单项、BTC 状态检查）、防假突破检测、连续亏损保护（2 次亏损 = 45 分钟暂停，3 次 = 24 小时）、客观信心度评分。risk_first 策略也非常安全，优先考虑资本保全，具有波动性适应仓位大小和系统性退出策略。',
+
+    faqMostFrequentStrategy: '哪种策略交易最频繁？',
+    faqMostFrequentStrategyAnswer:
+      'adaptive_relaxed 策略交易最频繁（预期 8-15 笔/天），同时保持核心风险控制。它具有放宽的阈值：信心度≥80（vs 85）、冷却期 6 分钟（vs 9 分钟）、2 个时间框架（vs 3 个）、4/8 清单（vs 5/8）、更短的亏损暂停。taro_long 策略也可以频繁交易，但频率根据 AI 自主决策而变化。',
+
+    faqSwitchStrategies: '我可以为现有交易员切换策略吗？',
+    faqSwitchStrategiesAnswer:
+      '可以！您可以在交易员配置中更改系统提示词模板。进入交易员设置，从下拉菜单中选择不同的"系统提示词模板"（default、adaptive、adaptive_relaxed、risk_first、nof1、Hansen 或 taro_long）。更改在交易员重启或下一个决策周期生效。注意：更改策略不会影响现有持仓，但新决策将遵循新策略规则。',
+
+    faqStrategyRiskPriority: '策略如何平衡风险与利润？',
+    faqStrategyRiskPriorityAnswer:
+      '所有策略都优先考虑资本保全，但侧重点不同：adaptive/risk_first/nof1 → 资本保全 > 利润（非常保守）；adaptive_relaxed → 平衡（更多交易但仍安全）；default/Hansen → 平衡（标准风险管理）；taro_long → AI 自主决定（自主风险评估）。risk_first 策略明确声明"资本保全 > 利润"并使用波动性适应大小。adaptive 策略使用"疑惑优先原则"——不确定时，总是选择等待。',
+
+    faqStrategyComparison: '可以用表格对比所有策略吗？',
+    faqStrategyComparisonAnswer:
+      '快速对比：| 策略 | 信心度 | 频率 | 风险 | 适合 | |----------|------------|-----------|------|----------| | adaptive | ≥85 | 极低 | 极低 | 最高保护 | | adaptive_relaxed | ≥80 | 8-15 笔/天 | 低 | 更多活跃度，仍安全 | | risk_first | ≥75 | 2-4 笔/天 | 极低 | 资本保全 | | nof1 | ≥80-85 | 2-4 笔/天 | 低 | 保守质量 | | default | ≥75 | 2-4 笔/天 | 中 | 初学者 | | Hansen | 可变 | 2-4 笔/天 | 中 | 英文/Hyperliquid | | taro_long | AI 决定 | 可变 | 中高 | 高级自主 |',
+
+    faqStrategyCustomization: '我可以自定义或修改策略吗？',
+    faqStrategyCustomizationAnswer:
+      '可以！您可以通过两种方式自定义策略：1) 自定义提示词：添加您自己的交易规则，补充或覆盖基础提示词。进入交易员设置 → "自定义提示词"字段。您可以选择完全覆盖基础提示词或补充它。2) 系统提示词模板：从 7 个预构建模板中选择。对于高级用户，您可以编辑 prompts/ 目录中的提示词文件（default.txt、adaptive.txt 等）以创建自己的自定义策略模板。',
 
     // Error Messages (API)
     errorGetTradersFailed: '获取trader列表失败',

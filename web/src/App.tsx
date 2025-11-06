@@ -27,7 +27,7 @@ import type {
   TraderInfo,
 } from './types'
 
-type Page = 'competition' | 'traders' | 'trader'
+type Page = 'competition' | 'traders' | 'trader' | 'recommendations'
 
 // 获取友好的AI模型名称
 function getModelDisplayName(modelId: string): string {
@@ -57,6 +57,8 @@ function App() {
     if (path === '/traders' || hash === 'traders') return 'traders'
     if (path === '/dashboard' || hash === 'trader' || hash === 'details')
       return 'trader'
+    if (path === '/recommendations' || hash === 'recommendations')
+      return 'recommendations'
     return 'competition' // 默认为竞赛页面
   }
 
@@ -78,6 +80,8 @@ function App() {
         hash === 'details'
       ) {
         setCurrentPage('trader')
+      } else if (path === '/recommendations' || hash === 'recommendations') {
+        setCurrentPage('recommendations')
       } else if (
         path === '/competition' ||
         hash === 'competition' ||
@@ -205,6 +209,8 @@ function App() {
       setCurrentPage('traders')
     } else if (route === '/dashboard') {
       setCurrentPage('trader')
+    } else if (route === '/recommendations') {
+      setCurrentPage('recommendations')
     }
   }, [route])
 
@@ -315,6 +321,11 @@ function App() {
               window.history.pushState({}, '', '/dashboard')
               setRoute('/dashboard')
               setCurrentPage('trader')
+            } else if (page === 'recommendations') {
+              console.log('Navigating to recommendations')
+              window.history.pushState({}, '', '/recommendations')
+              setRoute('/recommendations')
+              setCurrentPage('recommendations')
             } else if (page === 'faq') {
               console.log('Navigating to faq')
               window.history.pushState({}, '', '/faq')
@@ -380,6 +391,10 @@ function App() {
             window.history.pushState({}, '', '/dashboard')
             setRoute('/dashboard')
             setCurrentPage('trader')
+          } else if (page === 'recommendations') {
+            window.history.pushState({}, '', '/recommendations')
+            setRoute('/recommendations')
+            setCurrentPage('recommendations')
           } else if (page === 'faq') {
             window.history.pushState({}, '', '/faq')
             setRoute('/faq')
@@ -400,6 +415,8 @@ function App() {
               setCurrentPage('trader')
             }}
           />
+        ) : currentPage === 'recommendations' ? (
+          <RecommendationsPage />
         ) : (
           <TraderDetailsPage
             selectedTrader={selectedTrader}
@@ -850,8 +867,12 @@ function TraderDetailsPage({
             style={{ maxHeight: 'calc(100vh - 280px)' }}
           >
             {decisions && decisions.length > 0 ? (
-              decisions.map((decision, i) => (
-                <DecisionCard key={i} decision={decision} language={language} />
+              decisions.map((decision) => (
+                <DecisionCard
+                  key={`decision-${decision.cycle_number}-${decision.timestamp}`}
+                  decision={decision}
+                  language={language}
+                />
               ))
             ) : (
               <div className="py-16 text-center">
@@ -971,6 +992,24 @@ function DecisionCard({
     errorMessage: false,
     actionErrors: new Set(),
   })
+
+  // Reset translation state when decision changes
+  useEffect(() => {
+    setTranslatedCotTrace(null)
+    setTranslatedInputPrompt(null)
+    setTranslatedErrorMessage(null)
+    setTranslatedActionErrors(new Map())
+    setShowTranslatedCotTrace(false)
+    setShowTranslatedInputPrompt(false)
+    setShowTranslatedErrorMessage(false)
+    setShowTranslatedActionErrors(new Set())
+    setTranslating({
+      cotTrace: false,
+      inputPrompt: false,
+      errorMessage: false,
+      actionErrors: new Set(),
+    })
+  }, [decision.cycle_number, decision.timestamp])
 
   // Translation handlers
   const handleTranslateCotTrace = async () => {
