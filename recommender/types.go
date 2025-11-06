@@ -66,4 +66,5 @@ type StrategyScore struct {
 	Score         float64
 	Direction     string // "long" or "short"
 	Reasons       []string
+	MinConfidence int    // Minimum confidence threshold from the strategy config
 }

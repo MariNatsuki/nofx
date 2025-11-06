@@ -35,6 +35,7 @@ func scoreCoin(symbol string, category CoinCategory, strategies []StrategyConfig
 				Score:         longScore,
 				Direction:     "long",
 				Reasons:       longReasons,
+				MinConfidence: strategy.MinConfidence,
 			})
 		} else if shortScore >= 40 {
 			strategyScores = append(strategyScores, StrategyScore{
@@ -42,6 +43,7 @@ func scoreCoin(symbol string, category CoinCategory, strategies []StrategyConfig
 				Score:         shortScore,
 				Direction:     "short",
 				Reasons:       shortReasons,
+				MinConfidence: strategy.MinConfidence,
 			})
 		}
 	}
@@ -468,7 +470,7 @@ func aggregateStrategyScores(symbol string, category CoinCategory, data *market.
 
 	for _, ss := range strategyScores {
 		totalScore += ss.Score
-		totalConfidence += float64(calculateConfidence(ss.Score, StrategyConfig{MinConfidence: 0}))
+		totalConfidence += float64(calculateConfidence(ss.Score, StrategyConfig{MinConfidence: ss.MinConfidence}))
 		allReasons = append(allReasons, fmt.Sprintf("[%s] %s", ss.StrategyName, strings.Join(ss.Reasons, "; ")))
 		strategyNames = append(strategyNames, ss.StrategyName)
 		directions[ss.Direction]++

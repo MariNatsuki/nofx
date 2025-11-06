@@ -39,18 +39,198 @@ export function StrategiesContent({ language }: StrategiesContentProps) {
             {t('strategiesComparisonIntro', language)}
           </p>
           <div
-            className="p-4 rounded-lg"
+            className="overflow-x-auto rounded-lg"
             style={{
               background: '#1E2329',
               border: '1px solid #2B3139',
             }}
           >
-            <pre
-              className="text-sm whitespace-pre-wrap font-mono"
-              style={{ color: '#B7BDC6' }}
-            >
-              {t('strategiesComparisonTable', language)}
-            </pre>
+            <table className="w-full border-collapse">
+              <thead>
+                <tr
+                  style={{
+                    background: '#2B3139',
+                    borderBottom: '2px solid #3D4551',
+                  }}
+                >
+                  <th
+                    className="px-4 py-3 text-left font-semibold"
+                    style={{ color: '#EAECEF' }}
+                  >
+                    {t('strategyTableHeaderStrategy', language)}
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left font-semibold"
+                    style={{ color: '#EAECEF' }}
+                  >
+                    {t('strategyTableHeaderConfidence', language)}
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left font-semibold"
+                    style={{ color: '#EAECEF' }}
+                  >
+                    {t('strategyTableHeaderFrequency', language)}
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left font-semibold"
+                    style={{ color: '#EAECEF' }}
+                  >
+                    {t('strategyTableHeaderRisk', language)}
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left font-semibold"
+                    style={{ color: '#EAECEF' }}
+                  >
+                    {t('strategyTableHeaderBestFor', language)}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  style={{
+                    borderBottom: '1px solid #2B3139',
+                  }}
+                >
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    <code className="text-sm">adaptive</code>
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    ≥85
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyFrequencyVeryLow', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyRiskVeryLow', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyBestForMaximumProtection', language)}
+                  </td>
+                </tr>
+                <tr
+                  style={{
+                    borderBottom: '1px solid #2B3139',
+                  }}
+                >
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    <code className="text-sm">adaptive_relaxed</code>
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    ≥80
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    8-15 {t('strategyFrequencyPerDay', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyRiskLow', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyBestForMoreActivity', language)}
+                  </td>
+                </tr>
+                <tr
+                  style={{
+                    borderBottom: '1px solid #2B3139',
+                  }}
+                >
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    <code className="text-sm">risk_first</code>
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    ≥75
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    2-4 {t('strategyFrequencyPerDay', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyRiskVeryLow', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyBestForCapitalPreservation', language)}
+                  </td>
+                </tr>
+                <tr
+                  style={{
+                    borderBottom: '1px solid #2B3139',
+                  }}
+                >
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    <code className="text-sm">nof1</code>
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    ≥80-85
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    2-4 {t('strategyFrequencyPerDay', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyRiskLow', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyBestForConservativeQuality', language)}
+                  </td>
+                </tr>
+                <tr
+                  style={{
+                    borderBottom: '1px solid #2B3139',
+                  }}
+                >
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    <code className="text-sm">default</code>
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    ≥75
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    2-4 {t('strategyFrequencyPerDay', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyRiskMedium', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyBestForBeginners', language)}
+                  </td>
+                </tr>
+                <tr
+                  style={{
+                    borderBottom: '1px solid #2B3139',
+                  }}
+                >
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    <code className="text-sm">Hansen</code>
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyConfidenceVariable', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    2-4 {t('strategyFrequencyPerDay', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyRiskMedium', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyBestForEnglishHyperliquid', language)}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    <code className="text-sm">taro_long</code>
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyConfidenceAIDetermined', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyFrequencyVariable', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyRiskMediumHigh', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyBestForAdvancedAutonomy', language)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>

@@ -736,16 +736,27 @@ export const translations = {
     strategiesComparisonTitle: 'Strategy Comparison',
     strategiesComparisonIntro:
       'Here is a quick comparison of all available strategies:',
-    strategiesComparisonTable:
-      'Strategy          | Confidence | Frequency      | Risk Level    | Best For\n' +
-      '------------------|------------|----------------|---------------|-------------------\n' +
-      'adaptive          | ≥85        | Very low       | Very low      | Maximum protection\n' +
-      'adaptive_relaxed  | ≥80        | 8-15/day       | Low           | More activity, still safe\n' +
-      'risk_first        | ≥75        | 2-4/day        | Very low      | Capital preservation\n' +
-      'nof1              | ≥80-85     | 2-4/day        | Low           | Conservative quality\n' +
-      'default           | ≥75        | 2-4/day        | Medium        | Beginners\n' +
-      'Hansen            | Variable   | 2-4/day        | Medium        | English/Hyperliquid\n' +
-      'taro_long         | AI-determined | Variable   | Medium-High   | Advanced autonomy',
+    strategyTableHeaderStrategy: 'Strategy',
+    strategyTableHeaderConfidence: 'Confidence',
+    strategyTableHeaderFrequency: 'Frequency',
+    strategyTableHeaderRisk: 'Risk Level',
+    strategyTableHeaderBestFor: 'Best For',
+    strategyFrequencyVeryLow: 'Very low',
+    strategyFrequencyPerDay: '/day',
+    strategyFrequencyVariable: 'Variable',
+    strategyRiskVeryLow: 'Very low',
+    strategyRiskLow: 'Low',
+    strategyRiskMedium: 'Medium',
+    strategyRiskMediumHigh: 'Medium-High',
+    strategyConfidenceVariable: 'Variable',
+    strategyConfidenceAIDetermined: 'AI-determined',
+    strategyBestForMaximumProtection: 'Maximum protection',
+    strategyBestForMoreActivity: 'More activity, still safe',
+    strategyBestForCapitalPreservation: 'Capital preservation',
+    strategyBestForConservativeQuality: 'Conservative quality',
+    strategyBestForBeginners: 'Beginners',
+    strategyBestForEnglishHyperliquid: 'English/Hyperliquid',
+    strategyBestForAdvancedAutonomy: 'Advanced autonomy',
     strategiesDetailsTitle: 'Strategy Details',
     strategyDefaultTitle: 'Default Strategy',
     strategyDefaultDescription:
@@ -1684,16 +1695,27 @@ export const translations = {
       'NOFX 提供 7 种不同的交易策略，每种策略针对不同的风险状况和交易风格设计。所有策略都优先考虑资本保全和质量而非数量，但它们在信心度阈值、交易频率和风险管理方法上有所不同。',
     strategiesComparisonTitle: '策略对比',
     strategiesComparisonIntro: '以下是所有可用策略的快速对比：',
-    strategiesComparisonTable:
-      '策略              | 信心度      | 频率          | 风险水平      | 适合\n' +
-      '------------------|------------|---------------|---------------|-------------------\n' +
-      'adaptive          | ≥85        | 极低          | 极低          | 最高保护\n' +
-      'adaptive_relaxed  | ≥80        | 8-15 笔/天    | 低            | 更多活跃度，仍安全\n' +
-      'risk_first        | ≥75        | 2-4 笔/天     | 极低          | 资本保全\n' +
-      'nof1              | ≥80-85     | 2-4 笔/天     | 低            | 保守质量\n' +
-      'default           | ≥75        | 2-4 笔/天     | 中            | 初学者\n' +
-      'Hansen            | 可变       | 2-4 笔/天     | 中            | 英文/Hyperliquid\n' +
-      'taro_long         | AI 决定    | 可变          | 中高          | 高级自主',
+    strategyTableHeaderStrategy: '策略',
+    strategyTableHeaderConfidence: '信心度',
+    strategyTableHeaderFrequency: '频率',
+    strategyTableHeaderRisk: '风险水平',
+    strategyTableHeaderBestFor: '适合',
+    strategyFrequencyVeryLow: '极低',
+    strategyFrequencyPerDay: '笔/天',
+    strategyFrequencyVariable: '可变',
+    strategyRiskVeryLow: '极低',
+    strategyRiskLow: '低',
+    strategyRiskMedium: '中',
+    strategyRiskMediumHigh: '中高',
+    strategyConfidenceVariable: '可变',
+    strategyConfidenceAIDetermined: 'AI 决定',
+    strategyBestForMaximumProtection: '最高保护',
+    strategyBestForMoreActivity: '更多活跃度，仍安全',
+    strategyBestForCapitalPreservation: '资本保全',
+    strategyBestForConservativeQuality: '保守质量',
+    strategyBestForBeginners: '初学者',
+    strategyBestForEnglishHyperliquid: '英文/Hyperliquid',
+    strategyBestForAdvancedAutonomy: '高级自主',
     strategiesDetailsTitle: '策略详情',
     strategyDefaultTitle: '默认策略',
     strategyDefaultDescription:

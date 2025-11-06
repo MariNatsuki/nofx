@@ -24,16 +24,19 @@ export default function CategorySection({
 }: CategorySectionProps) {
   return (
     <div className="mb-8">
-      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+      <h2
+        className="text-2xl font-bold mb-4 flex items-center gap-2"
+        style={{ color: '#EAECEF' }}
+      >
         <span>{icon}</span>
         <span>{title}</span>
-        <span className="text-sm font-normal text-gray-600">
+        <span className="text-sm font-normal" style={{ color: '#848E9C' }}>
           ({coins.length} recommendations)
         </span>
       </h2>
 
       {coins.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8" style={{ color: '#848E9C' }}>
           No recommendations available for this category
         </div>
       ) : (

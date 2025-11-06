@@ -80,10 +80,13 @@ export default function RecommendationsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div
+      className="container mx-auto px-4 py-8"
+      style={{ background: '#0B0E11', minHeight: '100vh' }}
+    >
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">
+        <h1 className="text-3xl font-bold mb-4" style={{ color: '#EAECEF' }}>
           {t('recommendations.title', language)}
         </h1>
 
@@ -101,12 +104,15 @@ export default function RecommendationsPage() {
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
               className="w-4 h-4"
+              style={{ accentColor: '#F0B90B' }}
             />
-            <span>{t('recommendations.autoRefresh', language)}</span>
+            <span style={{ color: '#848E9C' }}>
+              {t('recommendations.autoRefresh', language)}
+            </span>
           </label>
 
           {autoRefresh && (
-            <span className="text-sm text-gray-600">
+            <span className="text-sm" style={{ color: '#848E9C' }}>
               {t('recommendations.nextUpdate', language)}:{' '}
               {formatCountdown(countdown)}
             </span>
@@ -115,7 +121,14 @@ export default function RecommendationsPage() {
           <button
             onClick={loadRecommendations}
             disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 rounded transition-all hover:scale-105 disabled:opacity-50 flex items-center gap-2"
+            style={{
+              background: loading
+                ? '#1E2329'
+                : 'linear-gradient(135deg, #F0B90B 0%, #FCD535 100%)',
+              color: loading ? '#848E9C' : '#0B0E11',
+              border: loading ? '1px solid #2B3139' : 'none',
+            }}
           >
             {loading ? (
               <>
@@ -135,13 +148,21 @@ export default function RecommendationsPage() {
         {recommendations && (
           <div className="mt-4">
             <span
-              className={`px-3 py-1 rounded text-sm ${
-                recommendations.btc_status === 'bullish'
-                  ? 'bg-green-100 text-green-800'
-                  : recommendations.btc_status === 'bearish'
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-gray-100 text-gray-800'
-              }`}
+              className="px-3 py-1 rounded text-sm"
+              style={{
+                background:
+                  recommendations.btc_status === 'bullish'
+                    ? 'rgba(34, 197, 94, 0.15)'
+                    : recommendations.btc_status === 'bearish'
+                      ? 'rgba(246, 70, 93, 0.15)'
+                      : 'rgba(132, 142, 156, 0.15)',
+                color:
+                  recommendations.btc_status === 'bullish'
+                    ? '#22C55E'
+                    : recommendations.btc_status === 'bearish'
+                      ? '#F6465D'
+                      : '#848E9C',
+              }}
             >
               BTC: {recommendations.btc_status.toUpperCase()}
             </span>
@@ -150,7 +171,14 @@ export default function RecommendationsPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="mt-4 p-3 bg-red-100 text-red-800 rounded">
+          <div
+            className="mt-4 p-3 rounded"
+            style={{
+              background: 'rgba(246, 70, 93, 0.1)',
+              color: '#F6465D',
+              border: '1px solid rgba(246, 70, 93, 0.2)',
+            }}
+          >
             {error}
           </div>
         )}
@@ -159,7 +187,10 @@ export default function RecommendationsPage() {
       {/* Loading State */}
       {loading && !recommendations && (
         <div className="flex justify-center items-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <Loader2
+            className="w-8 h-8 animate-spin"
+            style={{ color: '#F0B90B' }}
+          />
         </div>
       )}
 
@@ -184,10 +215,10 @@ export default function RecommendationsPage() {
       {/* Performance Section */}
       {recommendations && (
         <div className="mt-12">
-          <h2 className="text-2xl font-bold mb-4">
+          <h2 className="text-2xl font-bold mb-4" style={{ color: '#EAECEF' }}>
             {t('recommendations.performance', language)}
           </h2>
-          <p className="text-gray-600">
+          <p style={{ color: '#848E9C' }}>
             Performance tracking will be available after recommendations have
             been tracked for some time.
           </p>

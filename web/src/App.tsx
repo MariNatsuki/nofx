@@ -28,7 +28,13 @@ import type {
   TraderInfo,
 } from './types'
 
-type Page = 'competition' | 'traders' | 'trader' | 'recommendations'
+type Page =
+  | 'competition'
+  | 'traders'
+  | 'trader'
+  | 'recommendations'
+  | 'faq'
+  | 'strategies'
 
 // 获取友好的AI模型名称
 function getModelDisplayName(modelId: string): string {
@@ -60,6 +66,8 @@ function App() {
       return 'trader'
     if (path === '/recommendations' || hash === 'recommendations')
       return 'recommendations'
+    if (path === '/faq' || hash === 'faq') return 'faq'
+    if (path === '/strategies' || hash === 'strategies') return 'strategies'
     return 'competition' // 默认为竞赛页面
   }
 
@@ -83,6 +91,10 @@ function App() {
         setCurrentPage('trader')
       } else if (path === '/recommendations' || hash === 'recommendations') {
         setCurrentPage('recommendations')
+      } else if (path === '/faq' || hash === 'faq') {
+        setCurrentPage('faq')
+      } else if (path === '/strategies' || hash === 'strategies') {
+        setCurrentPage('strategies')
       } else if (
         path === '/competition' ||
         hash === 'competition' ||
@@ -212,6 +224,10 @@ function App() {
       setCurrentPage('trader')
     } else if (route === '/recommendations') {
       setCurrentPage('recommendations')
+    } else if (route === '/faq') {
+      setCurrentPage('faq')
+    } else if (route === '/strategies') {
+      setCurrentPage('strategies')
     }
   }, [route])
 
@@ -244,53 +260,6 @@ function App() {
       return <LoginPage />
     }
     return <RegisterPage />
-  }
-  if (route === '/faq') {
-    return <FAQPage />
-  }
-  if (route === '/strategies') {
-    return <StrategiesPage />
-  }
-  if (route === '/recommendations') {
-    return (
-      <div
-        className="min-h-screen"
-        style={{ background: '#000000', color: '#EAECEF' }}
-      >
-        <HeaderBar
-          isLoggedIn={!!user}
-          currentPage="recommendations"
-          language={language}
-          onLanguageChange={setLanguage}
-          user={user}
-          onLogout={logout}
-          isAdminMode={systemConfig?.admin_mode}
-          onPageChange={(page) => {
-            if (page === 'competition') {
-              window.history.pushState({}, '', '/competition')
-              setRoute('/competition')
-              setCurrentPage('competition')
-            } else if (page === 'traders') {
-              window.history.pushState({}, '', '/traders')
-              setRoute('/traders')
-              setCurrentPage('traders')
-            } else if (page === 'recommendations') {
-              window.history.pushState({}, '', '/recommendations')
-              setRoute('/recommendations')
-            } else if (page === 'faq') {
-              window.history.pushState({}, '', '/faq')
-              setRoute('/faq')
-            } else if (page === 'strategies') {
-              window.history.pushState({}, '', '/strategies')
-              setRoute('/strategies')
-            }
-          }}
-        />
-        <main className="max-w-[1920px] mx-auto px-6 py-6 pt-24">
-          <RecommendationsPage />
-        </main>
-      </div>
-    )
   }
   if (route === '/reset-password') {
     return <ResetPasswordPage />
@@ -337,9 +306,11 @@ function App() {
               console.log('Navigating to faq')
               window.history.pushState({}, '', '/faq')
               setRoute('/faq')
+              setCurrentPage('faq')
             } else if (page === 'strategies') {
               window.history.pushState({}, '', '/strategies')
               setRoute('/strategies')
+              setCurrentPage('strategies')
             }
 
             console.log(
@@ -408,9 +379,11 @@ function App() {
           } else if (page === 'faq') {
             window.history.pushState({}, '', '/faq')
             setRoute('/faq')
+            setCurrentPage('faq')
           } else if (page === 'strategies') {
             window.history.pushState({}, '', '/strategies')
             setRoute('/strategies')
+            setCurrentPage('strategies')
           }
         }}
       />
@@ -430,6 +403,10 @@ function App() {
           />
         ) : currentPage === 'recommendations' ? (
           <RecommendationsPage />
+        ) : currentPage === 'faq' ? (
+          <FAQPage />
+        ) : currentPage === 'strategies' ? (
+          <StrategiesPage />
         ) : (
           <TraderDetailsPage
             selectedTrader={selectedTrader}
