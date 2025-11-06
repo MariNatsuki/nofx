@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -2069,23 +2070,37 @@ func (s *Server) handleTranslate(c *gin.Context) {
 		return
 	}
 
-	// Parse response
+	// Read response body for parsing and logging
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Failed to read translation response body: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read translation response"})
+		return
+	}
+
+	// Log raw response for debugging
+	log.Printf("Translation API raw response: %s", string(bodyBytes))
+
+	// Parse response - MyMemory API format
 	var apiResp struct {
 		ResponseData struct {
 			TranslatedText string `json:"translatedText"`
 		} `json:"responseData"`
 		ResponseStatus int    `json:"responseStatus"`
 		ResponseDetails string `json:"responseDetails,omitempty"`
+		QuotaFinished   bool   `json:"quotaFinished,omitempty"`
+		MtLangSupported bool   `json:"mtLangSupported,omitempty"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		log.Printf("Failed to parse translation response: %v", err)
+	// Parse from body bytes
+	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
+		log.Printf("Failed to parse translation response: %v, raw body: %s", err, string(bodyBytes))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse translation response"})
 		return
 	}
 
 	if apiResp.ResponseStatus != 200 {
-		log.Printf("Translation API error: %s", apiResp.ResponseDetails)
+		log.Printf("Translation API error: status=%d, details=%s", apiResp.ResponseStatus, apiResp.ResponseDetails)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Translation failed"})
 		return
 	}
