@@ -2309,13 +2309,16 @@ func (s *Server) handleGetRecommendations(c *gin.Context) {
 		}
 		
 		// Add to appropriate category with limit
+		// Retrieve struct from map, modify it, and put it back
+		strategyRec := strategyRecs[strategy]
 		if coinCategory == "major" && majorCount < limit {
-			strategyRecs[strategy].MajorCoins = append(strategyRecs[strategy].MajorCoins, rec)
+			strategyRec.MajorCoins = append(strategyRec.MajorCoins, rec)
 			majorCount++
 		} else if coinCategory == "altcoin" && altcoinCount < limit {
-			strategyRecs[strategy].Altcoins = append(strategyRecs[strategy].Altcoins, rec)
+			strategyRec.Altcoins = append(strategyRec.Altcoins, rec)
 			altcoinCount++
 		}
+		strategyRecs[strategy] = strategyRec
 		
 		// Stop if we have enough recommendations
 		if majorCount >= limit && altcoinCount >= limit {
@@ -2577,13 +2580,16 @@ func (s *Server) handleRefreshRecommendations(c *gin.Context) {
 			}
 			
 			// Add to appropriate category with limit
+			// Retrieve struct from map, modify it, and put it back
+			strategyRec := strategyRecs[strategy]
 			if coinCategory == "major" && majorCount < body.Limit {
-				strategyRecs[strategy].MajorCoins = append(strategyRecs[strategy].MajorCoins, rec)
+				strategyRec.MajorCoins = append(strategyRec.MajorCoins, rec)
 				majorCount++
 			} else if coinCategory == "altcoin" && altcoinCount < body.Limit {
-				strategyRecs[strategy].Altcoins = append(strategyRecs[strategy].Altcoins, rec)
+				strategyRec.Altcoins = append(strategyRec.Altcoins, rec)
 				altcoinCount++
 			}
+			strategyRecs[strategy] = strategyRec
 			
 			// Stop if we have enough recommendations for this strategy
 			if majorCount >= body.Limit && altcoinCount >= body.Limit {
