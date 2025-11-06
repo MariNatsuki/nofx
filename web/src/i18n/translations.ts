@@ -22,6 +22,7 @@ export const translations = {
     dashboardNav: 'Dashboard',
     recommendationsNav: 'Recommendations',
     faqNav: 'FAQ',
+    strategiesNav: 'Strategies',
 
     // Footer
     footerTitle: 'NOFX - AI Trading System',
@@ -725,6 +726,58 @@ export const translations = {
     faqStrategyCustomizationAnswer:
       'Yes! You can customize strategies in two ways: 1) Custom Prompt: Add your own trading rules that supplement or override the base prompt. Go to trader settings → "Custom Prompt" field. You can choose to override the base prompt entirely or supplement it. 2) System Prompt Template: Select from 7 pre-built templates. For advanced users, you can edit the prompt files in the prompts/ directory (default.txt, adaptive.txt, etc.) to create your own custom strategy templates.',
 
+    // Trading Strategies Page
+    strategiesTitle: 'Trading Strategies',
+    strategiesSubtitle:
+      'Learn about all available trading strategies and choose the one that fits your risk tolerance',
+    strategiesIntroductionTitle: 'Introduction',
+    strategiesIntroduction:
+      'NOFX offers 7 different trading strategies, each designed for different risk profiles and trading styles. All strategies prioritize capital preservation and quality over quantity, but they differ in confidence thresholds, trade frequency, and risk management approaches.',
+    strategiesComparisonTitle: 'Strategy Comparison',
+    strategiesComparisonIntro:
+      'Here is a quick comparison of all available strategies:',
+    strategiesComparisonTable:
+      'Strategy          | Confidence | Frequency      | Risk Level    | Best For\n' +
+      '------------------|------------|----------------|---------------|-------------------\n' +
+      'adaptive          | ≥85        | Very low       | Very low      | Maximum protection\n' +
+      'adaptive_relaxed  | ≥80        | 8-15/day       | Low           | More activity, still safe\n' +
+      'risk_first        | ≥75        | 2-4/day        | Very low      | Capital preservation\n' +
+      'nof1              | ≥80-85     | 2-4/day        | Low           | Conservative quality\n' +
+      'default           | ≥75        | 2-4/day        | Medium        | Beginners\n' +
+      'Hansen            | Variable   | 2-4/day        | Medium        | English/Hyperliquid\n' +
+      'taro_long         | AI-determined | Variable   | Medium-High   | Advanced autonomy',
+    strategiesDetailsTitle: 'Strategy Details',
+    strategyDefaultTitle: 'Default Strategy',
+    strategyDefaultDescription:
+      'A balanced strategy suitable for beginners. Uses confidence threshold ≥75, trades 2-4 times per day, with medium risk level. This is the standard strategy that provides a good balance between safety and trading activity.',
+    strategyAdaptiveTitle: 'Adaptive Strategy',
+    strategyAdaptiveDescription:
+      'The safest strategy with maximum protection. Uses highest confidence threshold (≥85), very low trade frequency, and strictest validation including BTC status check, 8-item checklist (requires 5/8), anti-fake-breakout detection, and continuous loss protection (2 losses = 45min pause, 3 = 24h). Best for users who prioritize capital preservation above all else.',
+    strategyAdaptiveRelaxedTitle: 'Adaptive Relaxed Strategy',
+    strategyAdaptiveRelaxedDescription:
+      'A more active version of the adaptive strategy while maintaining core risk controls. Uses confidence threshold ≥80 (vs 85), cooldown 6min (vs 9min), 2 timeframes (vs 3), 4/8 checklist (vs 5/8), and shorter loss pauses. Expected to trade 8-15 times per day. Best for users who want more trading activity but still prioritize safety.',
+    strategyRiskFirstTitle: 'Risk First Strategy',
+    strategyRiskFirstDescription:
+      'Prioritizes capital preservation with explicit "Capital Preservation > Profit" principle. Uses confidence threshold ≥75, trades 2-4 times per day, with very low risk level. Features volatility-adaptive position sizing and systematic exit strategies. Best for users who want maximum capital protection.',
+    strategyNof1Title: 'NOF1 Strategy',
+    strategyNof1Description:
+      'A conservative quality-focused strategy. Uses confidence threshold ≥80-85, trades 2-4 times per day, with low risk level. Emphasizes quality over quantity in trading decisions. Best for users who prefer conservative, high-quality trades.',
+    strategyHansenTitle: 'Hansen Strategy',
+    strategyHansenDescription:
+      'Designed for English-speaking users and Hyperliquid exchange. Uses variable confidence thresholds, trades 2-4 times per day, with medium risk level. Optimized for specific exchange characteristics and English language prompts.',
+    strategyTaroLongTitle: 'Taro Long Strategy',
+    strategyTaroLongDescription:
+      'An advanced autonomous strategy with full AI decision-making. Uses AI-determined confidence thresholds, variable trade frequency, with medium-high risk level. Provides maximum autonomy to the AI for risk assessment and trading decisions. Best for advanced users who want full AI autonomy.',
+    strategiesHowToChooseTitle: 'How to Choose a Strategy',
+    strategiesHowToChoose:
+      'Choose based on your risk tolerance: Maximum safety → adaptive; Balanced safety + activity → adaptive_relaxed; Capital preservation → risk_first; Advanced users → taro_long; Simple/beginner → default or nof1. You can switch strategies at any time in the trader configuration settings.',
+    strategiesCustomizationTitle: 'Customizing Strategies',
+    strategiesCustomization:
+      'You can customize strategies in two ways: 1) Custom Prompt: Add your own trading rules that supplement or override the base prompt. Go to trader settings → "Custom Prompt" field. You can choose to override the base prompt entirely or supplement it. 2) System Prompt Template: Select from 7 pre-built templates. For advanced users, you can edit the prompt files in the prompts/ directory (default.txt, adaptive.txt, etc.) to create your own custom strategy templates.',
+    strategiesStillHaveQuestions: 'Still have questions?',
+    strategiesContactUs:
+      'Join our community or check GitHub for more help and detailed documentation.',
+
     // Error Messages (API)
     errorGetTradersFailed: 'Failed to get trader list',
     errorGetPublicTradersFailed: 'Failed to get public trader list',
@@ -962,6 +1015,7 @@ export const translations = {
     dashboardNav: '看板',
     recommendationsNav: '推荐',
     faqNav: '常见问题',
+    strategiesNav: '交易策略',
 
     // Footer
     footerTitle: 'NOFX - AI交易系统',
@@ -1621,6 +1675,55 @@ export const translations = {
     faqStrategyCustomization: '我可以自定义或修改策略吗？',
     faqStrategyCustomizationAnswer:
       '可以！您可以通过两种方式自定义策略：1) 自定义提示词：添加您自己的交易规则，补充或覆盖基础提示词。进入交易员设置 → "自定义提示词"字段。您可以选择完全覆盖基础提示词或补充它。2) 系统提示词模板：从 7 个预构建模板中选择。对于高级用户，您可以编辑 prompts/ 目录中的提示词文件（default.txt、adaptive.txt 等）以创建自己的自定义策略模板。',
+
+    // Trading Strategies Page
+    strategiesTitle: '交易策略',
+    strategiesSubtitle: '了解所有可用的交易策略，选择适合您风险承受能力的策略',
+    strategiesIntroductionTitle: '介绍',
+    strategiesIntroduction:
+      'NOFX 提供 7 种不同的交易策略，每种策略针对不同的风险状况和交易风格设计。所有策略都优先考虑资本保全和质量而非数量，但它们在信心度阈值、交易频率和风险管理方法上有所不同。',
+    strategiesComparisonTitle: '策略对比',
+    strategiesComparisonIntro: '以下是所有可用策略的快速对比：',
+    strategiesComparisonTable:
+      '策略              | 信心度      | 频率          | 风险水平      | 适合\n' +
+      '------------------|------------|---------------|---------------|-------------------\n' +
+      'adaptive          | ≥85        | 极低          | 极低          | 最高保护\n' +
+      'adaptive_relaxed  | ≥80        | 8-15 笔/天    | 低            | 更多活跃度，仍安全\n' +
+      'risk_first        | ≥75        | 2-4 笔/天     | 极低          | 资本保全\n' +
+      'nof1              | ≥80-85     | 2-4 笔/天     | 低            | 保守质量\n' +
+      'default           | ≥75        | 2-4 笔/天     | 中            | 初学者\n' +
+      'Hansen            | 可变       | 2-4 笔/天     | 中            | 英文/Hyperliquid\n' +
+      'taro_long         | AI 决定    | 可变          | 中高          | 高级自主',
+    strategiesDetailsTitle: '策略详情',
+    strategyDefaultTitle: '默认策略',
+    strategyDefaultDescription:
+      '适合初学者的平衡策略。使用信心度阈值≥75，每天交易 2-4 次，风险水平中等。这是标准策略，在安全性和交易活跃度之间提供良好平衡。',
+    strategyAdaptiveTitle: '自适应策略',
+    strategyAdaptiveDescription:
+      '最安全的策略，提供最高保护。使用最高信心度阈值（≥85），交易频率极低，最严格的验证包括 BTC 状态检查、8 项清单（需要 5/8）、防假突破检测和连续亏损保护（2 次亏损 = 45 分钟暂停，3 次 = 24 小时）。最适合优先考虑资本保全的用户。',
+    strategyAdaptiveRelaxedTitle: '自适应宽松策略',
+    strategyAdaptiveRelaxedDescription:
+      '自适应策略的更活跃版本，同时保持核心风险控制。使用信心度阈值≥80（vs 85）、冷却期 6 分钟（vs 9 分钟）、2 个时间框架（vs 3 个）、4/8 清单（vs 5/8）和更短的亏损暂停。预期每天交易 8-15 次。最适合想要更多交易活跃度但仍优先考虑安全性的用户。',
+    strategyRiskFirstTitle: '风险优先策略',
+    strategyRiskFirstDescription:
+      '优先考虑资本保全，明确"资本保全 > 利润"原则。使用信心度阈值≥75，每天交易 2-4 次，风险水平极低。具有波动性适应仓位大小和系统性退出策略。最适合想要最大资本保护的用户。',
+    strategyNof1Title: 'NOF1 策略',
+    strategyNof1Description:
+      '保守的质量导向策略。使用信心度阈值≥80-85，每天交易 2-4 次，风险水平低。强调质量而非数量。最适合偏好保守、高质量交易的用户。',
+    strategyHansenTitle: 'Hansen 策略',
+    strategyHansenDescription:
+      '专为英语用户和 Hyperliquid 交易所设计。使用可变信心度阈值，每天交易 2-4 次，风险水平中等。针对特定交易所特性和英语提示词优化。',
+    strategyTaroLongTitle: 'Taro Long 策略',
+    strategyTaroLongDescription:
+      '具有完全 AI 决策的高级自主策略。使用 AI 决定的信心度阈值，可变交易频率，风险水平中高。为 AI 提供最大自主权进行风险评估和交易决策。最适合想要完全 AI 自主的高级用户。',
+    strategiesHowToChooseTitle: '如何选择策略',
+    strategiesHowToChoose:
+      '根据您的风险承受能力选择：最高安全性 → adaptive；平衡安全性与活跃度 → adaptive_relaxed；资本保全 → risk_first；高级用户 → taro_long；简单/初学者 → default 或 nof1。您可以随时在交易员配置设置中切换策略。',
+    strategiesCustomizationTitle: '自定义策略',
+    strategiesCustomization:
+      '您可以通过两种方式自定义策略：1) 自定义提示词：添加您自己的交易规则，补充或覆盖基础提示词。进入交易员设置 → "自定义提示词"字段。您可以选择完全覆盖基础提示词或补充它。2) 系统提示词模板：从 7 个预构建模板中选择。对于高级用户，您可以编辑 prompts/ 目录中的提示词文件（default.txt、adaptive.txt 等）以创建自己的自定义策略模板。',
+    strategiesStillHaveQuestions: '还有其他问题？',
+    strategiesContactUs: '加入我们的社区或查看 GitHub 获取更多帮助和详细文档。',
 
     // Error Messages (API)
     errorGetTradersFailed: '获取trader列表失败',

@@ -1,8 +1,10 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -12,6 +14,7 @@ import (
 	"nofx/manager"
 	"nofx/recommender"
 	"nofx/trader"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -92,6 +95,9 @@ func (s *Server) setupRoutes() {
 		// 公开的收益率历史数据（无需认证，竞赛用，支持管理员和非管理员模式）
 		api.GET("/equity-history", s.handleEquityHistory)
 		api.POST("/equity-history-batch", s.handleEquityHistoryBatch)
+
+		// 翻译服务（无需认证，支持管理员和非管理员模式）
+		api.POST("/translate", s.handleTranslate)
 
 		// 仅在非管理员模式下的路由
 		if !auth.IsAdminMode() {
@@ -2415,4 +2421,145 @@ func (s *Server) handleGetPublicTraderConfig(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+// handleTranslate 翻译文本（使用Google Cloud Translation API）
+func (s *Server) handleTranslate(c *gin.Context) {
+	var req struct {
+		Text string `json:"text" binding:"required"`
+		To   string `json:"to" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: text and to are required"})
+		return
+	}
+
+	if strings.TrimSpace(req.Text) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Text cannot be empty"})
+		return
+	}
+
+	// Get API key from environment variable
+	apiKey := os.Getenv("GOOGLE_TRANSLATE_API_KEY")
+	if apiKey == "" {
+		log.Printf("GOOGLE_TRANSLATE_API_KEY environment variable is not set")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Translation service not configured"})
+		return
+	}
+
+	// Map language codes
+	targetLang := req.To
+	if targetLang == "zh" {
+		targetLang = "zh-CN"
+	} else if targetLang == "en" {
+		targetLang = "en"
+	}
+
+	// Build Google Cloud Translation API v2 request
+	apiURL := "https://translation.googleapis.com/language/translate/v2"
+
+	// Prepare request body
+	requestBody := map[string]interface{}{
+		"q":      []string{req.Text},
+		"target": targetLang,
+		"format": "text", // Use "text" format to preserve line breaks and formatting
+		// source is optional - API will auto-detect if not provided
+	}
+
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		log.Printf("Failed to marshal translation request: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare translation request"})
+		return
+	}
+
+	// Create HTTP request
+	httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		log.Printf("Failed to create translation request: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Translation service unavailable"})
+		return
+	}
+
+	// Set headers
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("X-Goog-Api-Key", apiKey)
+
+	// Make HTTP request
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		log.Printf("Translation API request failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Translation service unavailable"})
+		return
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Failed to read translation response body: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read translation response"})
+		return
+	}
+
+	// Check for HTTP errors
+	if resp.StatusCode != http.StatusOK {
+		// Try to parse error response
+		var errorResp struct {
+			Error struct {
+				Code    int    `json:"code"`
+				Message string `json:"message"`
+				Status  string `json:"status"`
+			} `json:"error"`
+		}
+		if err := json.Unmarshal(bodyBytes, &errorResp); err == nil {
+			log.Printf("Translation API error: code=%d, status=%s, message=%s",
+				errorResp.Error.Code, errorResp.Error.Status, errorResp.Error.Message)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("Translation failed: %s", errorResp.Error.Message),
+			})
+			return
+		}
+		log.Printf("Translation API returned status: %d, body: %s", resp.StatusCode, string(bodyBytes))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Translation service error"})
+		return
+	}
+
+	// Parse response - Google Cloud Translation API v2 format
+	var apiResp struct {
+		Data struct {
+			Translations []struct {
+				TranslatedText         string `json:"translatedText"`
+				DetectedSourceLanguage string `json:"detectedSourceLanguage,omitempty"`
+			} `json:"translations"`
+		} `json:"data"`
+	}
+
+	// Parse from body bytes
+	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
+		log.Printf("Failed to parse translation response: %v, raw body: %s", err, string(bodyBytes))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse translation response"})
+		return
+	}
+
+	// Extract translated text
+	if len(apiResp.Data.Translations) == 0 {
+		log.Printf("Translation API returned empty translations array")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Translation returned no results"})
+		return
+	}
+
+	translatedText := apiResp.Data.Translations[0].TranslatedText
+	if translatedText == "" {
+		// Fallback to original text if translation is empty
+		translatedText = req.Text
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"text": translatedText,
+	})
 }

@@ -6,7 +6,6 @@ import {
   Bot,
   Database,
   GitBranch,
-  Target,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -263,53 +262,6 @@ export const faqCategories: FAQCategory[] = [
         id: 'get-help',
         questionKey: 'faqGetHelp',
         answerKey: 'faqGetHelpAnswer',
-      },
-    ],
-  },
-  {
-    id: 'strategies',
-    titleKey: 'faqCategoryStrategies',
-    icon: Target,
-    items: [
-      {
-        id: 'how-to-choose-strategy',
-        questionKey: 'faqHowToChooseStrategy',
-        answerKey: 'faqHowToChooseStrategyAnswer',
-      },
-      {
-        id: 'strategy-differences',
-        questionKey: 'faqStrategyDifferences',
-        answerKey: 'faqStrategyDifferencesAnswer',
-      },
-      {
-        id: 'safest-strategy',
-        questionKey: 'faqSafestStrategy',
-        answerKey: 'faqSafestStrategyAnswer',
-      },
-      {
-        id: 'most-frequent-strategy',
-        questionKey: 'faqMostFrequentStrategy',
-        answerKey: 'faqMostFrequentStrategyAnswer',
-      },
-      {
-        id: 'switch-strategies',
-        questionKey: 'faqSwitchStrategies',
-        answerKey: 'faqSwitchStrategiesAnswer',
-      },
-      {
-        id: 'strategy-risk-priority',
-        questionKey: 'faqStrategyRiskPriority',
-        answerKey: 'faqStrategyRiskPriorityAnswer',
-      },
-      {
-        id: 'strategy-comparison',
-        questionKey: 'faqStrategyComparison',
-        answerKey: 'faqStrategyComparisonAnswer',
-      },
-      {
-        id: 'strategy-customization',
-        questionKey: 'faqStrategyCustomization',
-        answerKey: 'faqStrategyCustomizationAnswer',
       },
     ],
   },

@@ -9,6 +9,7 @@ import { ResetPasswordPage } from './components/ResetPasswordPage'
 import { CompetitionPage } from './components/CompetitionPage'
 import { LandingPage } from './pages/LandingPage'
 import { FAQPage } from './pages/FAQPage'
+import { StrategiesPage } from './pages/StrategiesPage'
 import RecommendationsPage from './pages/RecommendationsPage'
 import HeaderBar from './components/landing/HeaderBar'
 import AILearning from './components/AILearning'
@@ -247,6 +248,9 @@ function App() {
   if (route === '/faq') {
     return <FAQPage />
   }
+  if (route === '/strategies') {
+    return <StrategiesPage />
+  }
   if (route === '/recommendations') {
     return (
       <div
@@ -276,6 +280,9 @@ function App() {
             } else if (page === 'faq') {
               window.history.pushState({}, '', '/faq')
               setRoute('/faq')
+            } else if (page === 'strategies') {
+              window.history.pushState({}, '', '/strategies')
+              setRoute('/strategies')
             }
           }}
         />
@@ -330,6 +337,9 @@ function App() {
               console.log('Navigating to faq')
               window.history.pushState({}, '', '/faq')
               setRoute('/faq')
+            } else if (page === 'strategies') {
+              window.history.pushState({}, '', '/strategies')
+              setRoute('/strategies')
             }
 
             console.log(
@@ -398,6 +408,9 @@ function App() {
           } else if (page === 'faq') {
             window.history.pushState({}, '', '/faq')
             setRoute('/faq')
+          } else if (page === 'strategies') {
+            window.history.pushState({}, '', '/strategies')
+            setRoute('/strategies')
           }
         }}
       />

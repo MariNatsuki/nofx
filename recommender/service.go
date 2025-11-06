@@ -92,12 +92,13 @@ func (s *RecommendationService) saveRecommendation(rec *Recommendation) error {
 
 // updateOutcomes updates outcomes for pending recommendations
 func (s *RecommendationService) updateOutcomes() {
-	// Get pending recommendations from last 24 hours
+	// Get all recommendations from last 24 hours, including existing outcomes
 	rows, err := s.db.Query(`
-		SELECT r.id, r.symbol, r.direction, r.price_at_recommendation, r.created_at
+		SELECT r.id, r.symbol, r.direction, r.price_at_recommendation, r.created_at,
+		       ro.max_gain, ro.max_loss
 		FROM recommendations r
 		LEFT JOIN recommendation_outcomes ro ON r.id = ro.recommendation_id
-		WHERE ro.id IS NULL AND r.created_at > datetime('now', '-24 hours')
+		WHERE r.created_at > datetime('now', '-24 hours')
 	`)
 	if err != nil {
 		return
@@ -109,8 +110,9 @@ func (s *RecommendationService) updateOutcomes() {
 		var symbol, direction string
 		var priceAtRec float64
 		var createdAt time.Time
+		var existingMaxGain, existingMaxLoss *float64
 
-		rows.Scan(&recID, &symbol, &direction, &priceAtRec, &createdAt)
+		rows.Scan(&recID, &symbol, &direction, &priceAtRec, &createdAt, &existingMaxGain, &existingMaxLoss)
 
 		// Get current price
 		marketData, err := market.Get(symbol)
@@ -134,11 +136,23 @@ func (s *RecommendationService) updateOutcomes() {
 			}
 		}
 
+		// Calculate max_gain: update if current priceChange > existing max_gain (or initialize if null)
+		maxGain := priceChange
+		if existingMaxGain != nil && *existingMaxGain > priceChange {
+			maxGain = *existingMaxGain
+		}
+
+		// Calculate max_loss: update if current priceChange < existing max_loss (or initialize if null)
+		maxLoss := priceChange
+		if existingMaxLoss != nil && *existingMaxLoss < priceChange {
+			maxLoss = *existingMaxLoss
+		}
+
 		s.db.Exec(`
 			INSERT OR REPLACE INTO recommendation_outcomes 
 			(recommendation_id, outcome, price_change_1h, max_gain, max_loss, updated_at)
 			VALUES (?, ?, ?, ?, ?, datetime('now'))
-		`, recID, outcome, priceChange, priceChange, priceChange)
+		`, recID, outcome, priceChange, maxGain, maxLoss)
 	}
 }
 
