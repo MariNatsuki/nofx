@@ -5,28 +5,7 @@ import CategorySection from '../components/CategorySection'
 import { useLanguage } from '../contexts/LanguageContext'
 import { t } from '../i18n/translations'
 import { Loader2, RefreshCw } from 'lucide-react'
-
-interface Recommendation {
-  symbol: string
-  score: number
-  confidence: number
-  direction: string
-  strategy: string
-  reasoning: string
-  current_price: number
-  suggested_leverage: number
-}
-
-interface StrategyRecommendations {
-  major_coins: Recommendation[]
-  altcoins: Recommendation[]
-}
-
-interface RecommendationResponse {
-  strategies: Record<string, StrategyRecommendations>
-  updated_at: string
-  btc_status: string
-}
+import type { RecommendationResponse } from '../types/recommendation'
 
 export default function RecommendationsPage() {
   const { language } = useLanguage()

@@ -570,7 +570,7 @@ func aggregateStrategyScores(symbol string, category CoinCategory, data *market.
 		Score:             avgScore,
 		Confidence:        avgConfidence,
 		Direction:         finalDirection,
-		Strategies:        strategyNames,
+		Strategy:          strings.Join(strategyNames, ", "),
 		Reasoning:         strings.Join(allReasons, " | "),
 		CurrentPrice:      data.CurrentPrice,
 		SuggestedLeverage: suggestedLeverage,

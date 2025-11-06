@@ -1,15 +1,5 @@
 import RecommendationCard from './RecommendationCard'
-
-interface Recommendation {
-  symbol: string
-  score: number
-  confidence: number
-  direction: string
-  strategies: string[]
-  reasoning: string
-  current_price: number
-  suggested_leverage: number
-}
+import type { Recommendation } from '../types/recommendation'
 
 interface CategorySectionProps {
   title: string

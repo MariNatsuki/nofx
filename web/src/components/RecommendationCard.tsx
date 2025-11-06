@@ -1,15 +1,5 @@
 import { useState } from 'react'
-
-interface Recommendation {
-  symbol: string
-  score: number
-  confidence: number
-  direction: string
-  strategy: string
-  reasoning: string
-  current_price: number
-  suggested_leverage: number
-}
+import type { Recommendation } from '../types/recommendation'
 
 interface RecommendationCardProps {
   recommendation: Recommendation
