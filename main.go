@@ -10,6 +10,7 @@ import (
 	"nofx/manager"
 	"nofx/market"
 	"nofx/pool"
+	"nofx/recommender"
 	"os"
 	"os/signal"
 	"strconv"
@@ -374,6 +375,26 @@ func main() {
 	// 启动流行情数据 - 默认使用所有交易员设置的币种 如果没有设置币种 则优先使用系统默认
 	go market.NewWSMonitor(150).Start(database.GetCustomCoins())
 	//go market.NewWSMonitor(150).Start([]string{}) //这里是一个使用方式 传入空的话 则使用market市场的所有币种
+
+	// 初始化推荐服务
+	btcETHLeverage := 5
+	altcoinLeverage := 5
+	if btcETHStr, err := database.GetSystemConfig("btc_eth_leverage"); err == nil {
+		if val, err := strconv.Atoi(btcETHStr); err == nil {
+			btcETHLeverage = val
+		}
+	}
+	if altcoinStr, err := database.GetSystemConfig("altcoin_leverage"); err == nil {
+		if val, err := strconv.Atoi(altcoinStr); err == nil {
+			altcoinLeverage = val
+		}
+	}
+	
+	defaultStrategies := []string{"risk_first", "adaptive_relaxed"}
+	recommendationService := recommender.NewRecommendationService(database, defaultStrategies, btcETHLeverage, altcoinLeverage)
+	go recommendationService.Start()
+	log.Printf("✓ 推荐服务已启动（每3分钟更新一次）")
+
 	// 设置优雅退出
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
@@ -387,6 +408,7 @@ func main() {
 	fmt.Println()
 	log.Println("📛 收到退出信号，正在停止所有trader...")
 	traderManager.StopAll()
+	recommendationService.Stop()
 
 	fmt.Println()
 	fmt.Println("👋 感谢使用AI交易系统！")

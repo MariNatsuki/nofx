@@ -21,6 +21,16 @@ type Database struct {
 	db *sql.DB
 }
 
+// Exec executes a query without returning rows
+func (d *Database) Exec(query string, args ...interface{}) (sql.Result, error) {
+	return d.db.Exec(query, args...)
+}
+
+// Query executes a query that returns rows
+func (d *Database) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	return d.db.Query(query, args...)
+}
+
 // NewDatabase 创建配置数据库
 func NewDatabase(dbPath string) (*Database, error) {
 	db, err := sql.Open("sqlite", dbPath)
@@ -138,6 +148,36 @@ func (d *Database) createTables() error {
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 
+		// 推荐表
+		`CREATE TABLE IF NOT EXISTS recommendations (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			symbol TEXT NOT NULL,
+			coin_category TEXT NOT NULL,
+			score REAL NOT NULL,
+			confidence INTEGER NOT NULL,
+			direction TEXT NOT NULL,
+			strategies TEXT NOT NULL,
+			reasoning TEXT NOT NULL,
+			price_at_recommendation REAL NOT NULL,
+			leverage_suggested INTEGER,
+			technical_snapshot TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// 推荐结果表
+		`CREATE TABLE IF NOT EXISTS recommendation_outcomes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			recommendation_id INTEGER NOT NULL,
+			outcome TEXT NOT NULL,
+			price_change_1h REAL,
+			price_change_4h REAL,
+			price_change_24h REAL,
+			max_gain REAL,
+			max_loss REAL,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (recommendation_id) REFERENCES recommendations(id)
+		)`,
+
 		// 触发器：自动更新 updated_at
 		`CREATE TRIGGER IF NOT EXISTS update_users_updated_at
 			AFTER UPDATE ON users
@@ -179,6 +219,19 @@ func (d *Database) createTables() error {
 	for _, query := range queries {
 		if _, err := d.db.Exec(query); err != nil {
 			return fmt.Errorf("执行SQL失败 [%s]: %w", query, err)
+		}
+	}
+
+	// Create indexes for recommendations tables
+	indexQueries := []string{
+		`CREATE INDEX IF NOT EXISTS idx_recommendations_created_at ON recommendations(created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_recommendations_symbol ON recommendations(symbol)`,
+		`CREATE INDEX IF NOT EXISTS idx_recommendations_category ON recommendations(coin_category)`,
+	}
+
+	for _, query := range indexQueries {
+		if _, err := d.db.Exec(query); err != nil {
+			return fmt.Errorf("创建推荐表索引失败 [%s]: %w", query, err)
 		}
 	}
 

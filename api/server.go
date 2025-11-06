@@ -1,18 +1,16 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"nofx/auth"
 	"nofx/config"
 	"nofx/decision"
 	"nofx/manager"
+	"nofx/recommender"
 	"nofx/trader"
 	"strconv"
 	"strings"
@@ -105,8 +103,11 @@ func (s *Server) setupRoutes() {
 		api.GET("/prompt-templates", s.handleGetPromptTemplates)
 		api.GET("/prompt-templates/:name", s.handleGetPromptTemplate)
 
-		// 翻译服务（无需认证，支持管理员和非管理员模式）
-		api.POST("/translate", s.handleTranslate)
+		// 推荐系统（无需认证）
+		api.GET("/recommendations/current", s.handleGetRecommendations)
+		api.GET("/recommendations/history", s.handleGetRecommendationHistory)
+		api.GET("/recommendations/performance", s.handleGetRecommendationPerformance)
+		api.POST("/recommendations/refresh", s.handleRefreshRecommendations)
 
 		// 公开的竞赛数据（仅在非管理员模式下公开）
 		if !auth.IsAdminMode() {
@@ -2025,147 +2026,6 @@ func (s *Server) handleGetPromptTemplate(c *gin.Context) {
 	})
 }
 
-// handleTranslate 翻译文本（使用Google Cloud Translation API）
-func (s *Server) handleTranslate(c *gin.Context) {
-	var req struct {
-		Text string `json:"text" binding:"required"`
-		To   string `json:"to" binding:"required"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: text and to are required"})
-		return
-	}
-
-	if strings.TrimSpace(req.Text) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Text cannot be empty"})
-		return
-	}
-
-	// Get API key from environment variable
-	apiKey := os.Getenv("GOOGLE_TRANSLATE_API_KEY")
-	if apiKey == "" {
-		log.Printf("GOOGLE_TRANSLATE_API_KEY environment variable is not set")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Translation service not configured"})
-		return
-	}
-
-	// Map language codes
-	targetLang := req.To
-	if targetLang == "zh" {
-		targetLang = "zh-CN"
-	} else if targetLang == "en" {
-		targetLang = "en"
-	}
-
-	// Build Google Cloud Translation API v2 request
-	apiURL := "https://translation.googleapis.com/language/translate/v2"
-
-	// Prepare request body
-	requestBody := map[string]interface{}{
-		"q":      []string{req.Text},
-		"target": targetLang,
-		"format": "text", // Use "text" format to preserve line breaks and formatting
-		// source is optional - API will auto-detect if not provided
-	}
-
-	jsonBody, err := json.Marshal(requestBody)
-	if err != nil {
-		log.Printf("Failed to marshal translation request: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare translation request"})
-		return
-	}
-
-	// Create HTTP request
-	httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		log.Printf("Failed to create translation request: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Translation service unavailable"})
-		return
-	}
-
-	// Set headers
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("X-Goog-Api-Key", apiKey)
-
-	// Make HTTP request
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		log.Printf("Translation API request failed: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Translation service unavailable"})
-		return
-	}
-	defer resp.Body.Close()
-
-	// Read response body
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Failed to read translation response body: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read translation response"})
-		return
-	}
-
-	// Check for HTTP errors
-	if resp.StatusCode != http.StatusOK {
-		// Try to parse error response
-		var errorResp struct {
-			Error struct {
-				Code    int    `json:"code"`
-				Message string `json:"message"`
-				Status  string `json:"status"`
-			} `json:"error"`
-		}
-		if err := json.Unmarshal(bodyBytes, &errorResp); err == nil {
-			log.Printf("Translation API error: code=%d, status=%s, message=%s",
-				errorResp.Error.Code, errorResp.Error.Status, errorResp.Error.Message)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("Translation failed: %s", errorResp.Error.Message),
-			})
-			return
-		}
-		log.Printf("Translation API returned status: %d, body: %s", resp.StatusCode, string(bodyBytes))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Translation service error"})
-		return
-	}
-
-	// Parse response - Google Cloud Translation API v2 format
-	var apiResp struct {
-		Data struct {
-			Translations []struct {
-				TranslatedText string `json:"translatedText"`
-				DetectedSourceLanguage string `json:"detectedSourceLanguage,omitempty"`
-			} `json:"translations"`
-		} `json:"data"`
-	}
-
-	// Parse from body bytes
-	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
-		log.Printf("Failed to parse translation response: %v, raw body: %s", err, string(bodyBytes))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse translation response"})
-		return
-	}
-
-	// Extract translated text
-	if len(apiResp.Data.Translations) == 0 {
-		log.Printf("Translation API returned empty translations array")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Translation returned no results"})
-		return
-	}
-
-	translatedText := apiResp.Data.Translations[0].TranslatedText
-	if translatedText == "" {
-		// Fallback to original text if translation is empty
-		translatedText = req.Text
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"text": translatedText,
-	})
-}
-
 // handlePublicTraderList 获取公开的交易员列表（无需认证）
 func (s *Server) handlePublicTraderList(c *gin.Context) {
 	// 从所有用户获取交易员信息
@@ -2341,6 +2201,199 @@ func (s *Server) getEquityHistoryForTraders(traderIDs []string) map[string]inter
 	}
 
 	return result
+}
+
+// handleGetRecommendations 获取当前推荐
+func (s *Server) handleGetRecommendations(c *gin.Context) {
+	// Get strategies from query param
+	strategiesParam := c.DefaultQuery("strategies", "risk_first,adaptive_relaxed")
+	strategies := strings.Split(strategiesParam, ",")
+	
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	
+	// Get leverage settings from system config
+	btcETHLeverage := 5
+	altcoinLeverage := 5
+	if btcETHStr, err := s.database.GetSystemConfig("btc_eth_leverage"); err == nil {
+		if val, err := strconv.Atoi(btcETHStr); err == nil {
+			btcETHLeverage = val
+		}
+	}
+	if altcoinStr, err := s.database.GetSystemConfig("altcoin_leverage"); err == nil {
+		if val, err := strconv.Atoi(altcoinStr); err == nil {
+			altcoinLeverage = val
+		}
+	}
+	
+	// Generate recommendations
+	response, err := recommender.GenerateRecommendations(strategies, limit, btcETHLeverage, altcoinLeverage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	
+	c.JSON(http.StatusOK, response)
+}
+
+// handleGetRecommendationHistory 获取历史推荐
+func (s *Server) handleGetRecommendationHistory(c *gin.Context) {
+	since := c.Query("since")
+	until := c.Query("until")
+	symbol := c.Query("symbol")
+	category := c.Query("category")
+	
+	query := `SELECT id, symbol, coin_category, score, confidence, direction, strategies, 
+	          reasoning, price_at_recommendation, leverage_suggested, technical_snapshot, created_at
+	          FROM recommendations WHERE 1=1`
+	args := []interface{}{}
+	
+	if since != "" {
+		query += " AND created_at >= ?"
+		args = append(args, since)
+	}
+	if until != "" {
+		query += " AND created_at <= ?"
+		args = append(args, until)
+	}
+	if symbol != "" {
+		query += " AND symbol = ?"
+		args = append(args, symbol)
+	}
+	if category != "" {
+		query += " AND coin_category = ?"
+		args = append(args, category)
+	}
+	
+	query += " ORDER BY created_at DESC LIMIT 100"
+	
+	rows, err := s.database.Query(query, args...)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	
+	recommendations := []map[string]interface{}{}
+	for rows.Next() {
+		var id int
+		var symbol, coinCategory, direction, strategies, reasoning, technicalSnapshot string
+		var score float64
+		var confidence, leverageSuggested int
+		var priceAtRec float64
+		var createdAt time.Time
+		
+		err := rows.Scan(&id, &symbol, &coinCategory, &score, &confidence, &direction, &strategies,
+			&reasoning, &priceAtRec, &leverageSuggested, &technicalSnapshot, &createdAt)
+		if err != nil {
+			continue
+		}
+		
+		var strategiesList []string
+		json.Unmarshal([]byte(strategies), &strategiesList)
+		
+		recommendations = append(recommendations, map[string]interface{}{
+			"id":                   id,
+			"symbol":               symbol,
+			"coin_category":        coinCategory,
+			"score":                score,
+			"confidence":           confidence,
+			"direction":            direction,
+			"strategies":           strategiesList,
+			"reasoning":            reasoning,
+			"price_at_recommendation": priceAtRec,
+			"leverage_suggested":   leverageSuggested,
+			"technical_snapshot":   technicalSnapshot,
+			"created_at":           createdAt,
+		})
+	}
+	
+	c.JSON(http.StatusOK, recommendations)
+}
+
+// handleGetRecommendationPerformance 获取推荐表现统计
+func (s *Server) handleGetRecommendationPerformance(c *gin.Context) {
+	rows, err := s.database.Query(`
+		SELECT 
+			r.coin_category,
+			r.strategies,
+			COUNT(*) as total,
+			SUM(CASE WHEN ro.outcome = 'profitable' THEN 1 ELSE 0 END) as profitable,
+			AVG(ro.price_change_1h) as avg_return
+		FROM recommendations r
+		JOIN recommendation_outcomes ro ON r.id = ro.recommendation_id
+		WHERE r.created_at > datetime('now', '-7 days')
+		GROUP BY r.coin_category, r.strategies
+	`)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	
+	performance := map[string]map[string]interface{}{}
+	for rows.Next() {
+		var category, strategies string
+		var total, profitable int
+		var avgReturn float64
+		
+		rows.Scan(&category, &strategies, &total, &profitable, &avgReturn)
+		
+		key := category + "_" + strategies
+		performance[key] = map[string]interface{}{
+			"category":    category,
+			"strategies":   strategies,
+			"total":        total,
+			"profitable":   profitable,
+			"success_rate": float64(profitable) / float64(total),
+			"avg_return":   avgReturn,
+		}
+	}
+	
+	c.JSON(http.StatusOK, performance)
+}
+
+// handleRefreshRecommendations 强制刷新推荐
+func (s *Server) handleRefreshRecommendations(c *gin.Context) {
+	// Get strategies from body or use default
+	var body struct {
+		Strategies []string `json:"strategies"`
+		Limit       int      `json:"limit"`
+	}
+	
+	if err := c.ShouldBindJSON(&body); err != nil {
+		body.Strategies = []string{"risk_first", "adaptive_relaxed"}
+		body.Limit = 10
+	}
+	
+	if len(body.Strategies) == 0 {
+		body.Strategies = []string{"risk_first", "adaptive_relaxed"}
+	}
+	if body.Limit == 0 {
+		body.Limit = 10
+	}
+	
+	// Get leverage settings
+	btcETHLeverage := 5
+	altcoinLeverage := 5
+	if btcETHStr, err := s.database.GetSystemConfig("btc_eth_leverage"); err == nil {
+		if val, err := strconv.Atoi(btcETHStr); err == nil {
+			btcETHLeverage = val
+		}
+	}
+	if altcoinStr, err := s.database.GetSystemConfig("altcoin_leverage"); err == nil {
+		if val, err := strconv.Atoi(altcoinStr); err == nil {
+			altcoinLeverage = val
+		}
+	}
+	
+	// Generate recommendations
+	response, err := recommender.GenerateRecommendations(body.Strategies, body.Limit, btcETHLeverage, altcoinLeverage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	
+	c.JSON(http.StatusOK, response)
 }
 
 // handleGetPublicTraderConfig 获取公开的交易员配置信息（无需认证，不包含敏感信息）

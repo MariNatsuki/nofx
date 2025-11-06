@@ -339,4 +339,58 @@ export const api = {
     if (!res.ok) throw new Error('errorGetServerIPFailed')
     return res.json()
   },
+
+  // 推荐系统接口（无需认证）
+  async getRecommendations(
+    strategies: string[] = [],
+    limit: number = 10
+  ): Promise<any> {
+    const strategiesParam =
+      strategies.length > 0
+        ? strategies.join(',')
+        : 'risk_first,adaptive_relaxed'
+    const res = await fetch(
+      `${API_BASE}/recommendations/current?strategies=${strategiesParam}&limit=${limit}`
+    )
+    if (!res.ok) throw new Error('errorGetRecommendationsFailed')
+    return res.json()
+  },
+
+  async getRecommendationHistory(filters: {
+    since?: string
+    until?: string
+    symbol?: string
+    category?: string
+  }): Promise<any[]> {
+    const params = new URLSearchParams()
+    if (filters.since) params.append('since', filters.since)
+    if (filters.until) params.append('until', filters.until)
+    if (filters.symbol) params.append('symbol', filters.symbol)
+    if (filters.category) params.append('category', filters.category)
+
+    const res = await fetch(`${API_BASE}/recommendations/history?${params}`)
+    if (!res.ok) throw new Error('errorGetRecommendationHistoryFailed')
+    return res.json()
+  },
+
+  async getRecommendationPerformance(): Promise<any> {
+    const res = await fetch(`${API_BASE}/recommendations/performance`)
+    if (!res.ok) throw new Error('errorGetRecommendationPerformanceFailed')
+    return res.json()
+  },
+
+  async refreshRecommendations(
+    strategies: string[] = [],
+    limit: number = 10
+  ): Promise<any> {
+    const res = await fetch(`${API_BASE}/recommendations/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ strategies, limit }),
+    })
+    if (!res.ok) throw new Error('errorRefreshRecommendationsFailed')
+    return res.json()
+  },
 }

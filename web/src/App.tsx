@@ -9,6 +9,7 @@ import { ResetPasswordPage } from './components/ResetPasswordPage'
 import { CompetitionPage } from './components/CompetitionPage'
 import { LandingPage } from './pages/LandingPage'
 import { FAQPage } from './pages/FAQPage'
+import RecommendationsPage from './pages/RecommendationsPage'
 import HeaderBar from './components/landing/HeaderBar'
 import AILearning from './components/AILearning'
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext'
@@ -239,6 +240,44 @@ function App() {
   }
   if (route === '/faq') {
     return <FAQPage />
+  }
+  if (route === '/recommendations') {
+    return (
+      <div
+        className="min-h-screen"
+        style={{ background: '#000000', color: '#EAECEF' }}
+      >
+        <HeaderBar
+          isLoggedIn={!!user}
+          currentPage="recommendations"
+          language={language}
+          onLanguageChange={setLanguage}
+          user={user}
+          onLogout={logout}
+          isAdminMode={systemConfig?.admin_mode}
+          onPageChange={(page) => {
+            if (page === 'competition') {
+              window.history.pushState({}, '', '/competition')
+              setRoute('/competition')
+              setCurrentPage('competition')
+            } else if (page === 'traders') {
+              window.history.pushState({}, '', '/traders')
+              setRoute('/traders')
+              setCurrentPage('traders')
+            } else if (page === 'recommendations') {
+              window.history.pushState({}, '', '/recommendations')
+              setRoute('/recommendations')
+            } else if (page === 'faq') {
+              window.history.pushState({}, '', '/faq')
+              setRoute('/faq')
+            }
+          }}
+        />
+        <main className="max-w-[1920px] mx-auto px-6 py-6 pt-24">
+          <RecommendationsPage />
+        </main>
+      </div>
+    )
   }
   if (route === '/reset-password') {
     return <ResetPasswordPage />

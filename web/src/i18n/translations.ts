@@ -20,6 +20,7 @@ export const translations = {
     realtimeNav: 'Live',
     configNav: 'Config',
     dashboardNav: 'Dashboard',
+    recommendationsNav: 'Recommendations',
     faqNav: 'FAQ',
 
     // Footer
@@ -895,6 +896,16 @@ export const translations = {
     faqRoadmap: 'Roadmap',
     faqTaskDashboard: 'Task Dashboard',
     faqReferencesLabel: 'References:',
+
+    // Recommendations
+    'recommendations.title': 'Coin Recommendations',
+    'recommendations.autoRefresh': 'Auto-refresh',
+    'recommendations.nextUpdate': 'Next update',
+    'recommendations.refreshNow': 'Refresh Now',
+    'recommendations.majorCoins': 'Major Coins (BTC/ETH)',
+    'recommendations.altcoins': 'Altcoins',
+    'recommendations.performance': 'Historical Performance',
+    'common.loading': 'Loading...',
   },
   zh: {
     // Header
@@ -915,6 +926,7 @@ export const translations = {
     realtimeNav: '实时',
     configNav: '配置',
     dashboardNav: '看板',
+    recommendationsNav: '推荐',
     faqNav: '常见问题',
 
     // Footer
@@ -1729,6 +1741,16 @@ export const translations = {
     faqRoadmap: '路线图',
     faqTaskDashboard: '任务看板',
     faqReferencesLabel: '参考文档：',
+
+    // Recommendations
+    'recommendations.title': '币种推荐',
+    'recommendations.autoRefresh': '自动刷新',
+    'recommendations.nextUpdate': '下次更新',
+    'recommendations.refreshNow': '立即刷新',
+    'recommendations.majorCoins': '主流币种 (BTC/ETH)',
+    'recommendations.altcoins': '山寨币',
+    'recommendations.performance': '历史表现',
+    'common.loading': '加载中...',
   },
 }
 
@@ -1737,7 +1759,7 @@ export function t(
   lang: Language,
   params?: Record<string, string | number>
 ): string {
-  let text = translations[lang][key as keyof (typeof translations)['en']] || key
+  let text = (translations[lang] as Record<string, string>)[key] || key
 
   // Replace parameters like {count}, {gap}, etc.
   if (params) {
