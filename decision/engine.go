@@ -282,25 +282,40 @@ func buildSystemPromptWithCustom(accountEquity float64, btcEthLeverage, altcoinL
 func buildSystemPrompt(accountEquity float64, btcEthLeverage, altcoinLeverage int, templateName string) string {
 	var sb strings.Builder
 
+	// 记录原始请求的模板名称
+	requestedTemplate := templateName
+	if requestedTemplate == "" {
+		requestedTemplate = "(空，将使用默认值)"
+	}
+
 	// 1. 加载提示词模板（核心交易策略部分）
 	if templateName == "" {
 		templateName = "default" // 默认使用 default 模板
 	}
 
+	log.Printf("📝 构建系统提示词: 请求的模板='%s', 实际使用='%s'", requestedTemplate, templateName)
 	template, err := GetPromptTemplate(templateName)
 	if err != nil {
 		// 如果模板不存在，记录错误并使用 default
-		log.Printf("⚠️  提示词模板 '%s' 不存在，使用 default: %v", templateName, err)
+		log.Printf("⚠️  提示词模板 '%s' 不存在，回退到 default: %v", templateName, err)
+		actualTemplate := "default"
 		template, err = GetPromptTemplate("default")
 		if err != nil {
 			// 如果连 default 都不存在，使用内置的简化版本
 			log.Printf("❌ 无法加载任何提示词模板，使用内置简化版本")
+			log.Printf("📝 最终使用的提示词: 内置简化版本 (请求: '%s')", requestedTemplate)
 			sb.WriteString("你是专业的加密货币交易AI。请根据市场数据做出交易决策。\n\n")
 		} else {
+			log.Printf("📝 最终使用的提示词模板: %s (文件: %s.txt) [从 '%s' 回退]", actualTemplate, actualTemplate, templateName)
 			sb.WriteString(template.Content)
 			sb.WriteString("\n\n")
 		}
 	} else {
+		if requestedTemplate != templateName {
+			log.Printf("📝 最终使用的提示词模板: %s (文件: %s.txt) [从 '%s' 使用默认值]", templateName, templateName, requestedTemplate)
+		} else {
+			log.Printf("📝 最终使用的提示词模板: %s (文件: %s.txt)", templateName, templateName)
+		}
 		sb.WriteString(template.Content)
 		sb.WriteString("\n\n")
 	}

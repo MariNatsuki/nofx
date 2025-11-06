@@ -249,6 +249,18 @@ func (at *AutoTrader) Run() error {
 	log.Printf("💰 初始余额: %.2f USDT", at.initialBalance)
 	log.Printf("⚙️  扫描间隔: %v", at.config.ScanInterval)
 	log.Println("🤖 AI将全权决定杠杆、仓位大小、止损止盈等参数")
+	
+	// 显示当前使用的提示词配置
+	log.Printf("📝 系统提示词模板: %s", at.systemPromptTemplate)
+	if at.customPrompt != "" {
+		if at.overrideBasePrompt {
+			log.Printf("📝 自定义提示词: 已设置 (覆盖基础提示词)")
+		} else {
+			log.Printf("📝 自定义提示词: 已设置 (补充基础提示词)")
+		}
+	} else {
+		log.Printf("📝 自定义提示词: 未设置")
+	}
 
 	// 启动回撤监控
 	at.startDrawdownMonitor()

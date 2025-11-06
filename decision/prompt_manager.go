@@ -169,9 +169,11 @@ func (pm *PromptManager) GetTemplate(name string) (*PromptTemplate, error) {
 
 	template, exists := pm.templates[name]
 	if !exists {
+		log.Printf("📝 尝试获取提示词模板 '%s': 不存在", name)
 		return nil, fmt.Errorf("提示词模板不存在: %s", name)
 	}
 
+	log.Printf("📝 获取提示词模板: %s (文件: %s.txt)", name, name)
 	return template, nil
 }
 
