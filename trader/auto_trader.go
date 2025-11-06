@@ -108,6 +108,7 @@ type AutoTrader struct {
 	lastBalanceSyncTime   time.Time        // 上次余额同步时间
 	database              interface{}      // 数据库引用（用于自动更新余额）
 	userID                string           // 用户ID
+	previousPositions     map[string]logger.PositionSnapshot // 上一周期的持仓快照 (symbol_side -> PositionSnapshot)
 }
 
 // NewAutoTrader 创建自动交易器
@@ -239,6 +240,7 @@ func NewAutoTrader(config AutoTraderConfig, database interface{}, userID string)
 		lastBalanceSyncTime:   time.Now(), // 初始化为当前时间
 		database:              database,
 		userID:                userID,
+		previousPositions:     make(map[string]logger.PositionSnapshot),
 	}, nil
 }
 
@@ -527,10 +529,21 @@ func (at *AutoTrader) runCycle() error {
 	// }
 	log.Println()
 				log.Print(strings.Repeat("-", 70))
-	// 8. 对决策排序：确保先平仓后开仓（防止仓位叠加超限）
+	// 8. 检测平台关闭的交易（止损、止盈、强平等）
+	platformClosedActions := at.detectPlatformClosedTrades(record.Positions, decision.Decisions)
+	if len(platformClosedActions) > 0 {
+		log.Printf("🔍 检测到 %d 个平台关闭的交易", len(platformClosedActions))
+		for _, action := range platformClosedActions {
+			log.Printf("  📌 %s %s (平台关闭，价格: %.4f)", action.Symbol, action.Action, action.Price)
+			record.Decisions = append(record.Decisions, action)
+			record.ExecutionLog = append(record.ExecutionLog, fmt.Sprintf("🔍 %s %s 被平台关闭 (价格: %.4f)", action.Symbol, action.Action, action.Price))
+		}
+	}
+
+	// 9. 对决策排序：确保先平仓后开仓（防止仓位叠加超限）
 				log.Print(strings.Repeat("-", 70))
 
-	// 8. 对决策排序：确保先平仓后开仓（防止仓位叠加超限）
+	// 9. 对决策排序：确保先平仓后开仓（防止仓位叠加超限）
 	sortedDecisions := sortDecisionsByPriority(decision.Decisions)
 
 	log.Println("🔄 执行顺序（已优化）: 先平仓→后开仓")
@@ -565,7 +578,10 @@ func (at *AutoTrader) runCycle() error {
 		record.Decisions = append(record.Decisions, actionRecord)
 	}
 
-	// 9. 保存决策记录
+	// 10. 更新上一周期的持仓快照（用于下一周期检测平台关闭的交易）
+	at.updatePreviousPositions(record.Positions)
+
+	// 11. 保存决策记录
 	if err := at.decisionLogger.LogDecision(record); err != nil {
 		log.Printf("⚠ 保存决策记录失败: %v", err)
 	}
@@ -1669,4 +1685,85 @@ func (at *AutoTrader) ClearPeakPnLCache(symbol string) {
 	defer at.peakPnLCacheMutex.Unlock()
 
 	delete(at.peakPnLCache, symbol)
+}
+
+// detectPlatformClosedTrades 检测被平台关闭的交易（止损、止盈、强平等）
+// 返回平台关闭的交易对应的DecisionAction列表
+func (at *AutoTrader) detectPlatformClosedTrades(currentPositions []logger.PositionSnapshot, aiDecisions []decision.Decision) []logger.DecisionAction {
+	var platformClosedActions []logger.DecisionAction
+
+	// 构建当前持仓的key集合 (symbol_side)
+	currentPositionKeys := make(map[string]bool)
+	for _, pos := range currentPositions {
+		posKey := pos.Symbol + "_" + pos.Side
+		currentPositionKeys[posKey] = true
+	}
+
+	// 构建AI决策中显式关闭的交易key集合（避免重复计数）
+	explicitCloseKeys := make(map[string]bool)
+	for _, d := range aiDecisions {
+		if d.Action == "close_long" || d.Action == "close_short" || d.Action == "partial_close" {
+			side := ""
+			if d.Action == "close_long" || d.Action == "partial_close" {
+				side = "long"
+			} else if d.Action == "close_short" {
+				side = "short"
+			}
+			if side != "" {
+				posKey := d.Symbol + "_" + side
+				explicitCloseKeys[posKey] = true
+			}
+		}
+	}
+
+	// 遍历上一周期的持仓，找出已关闭的持仓
+	for posKey, prevPos := range at.previousPositions {
+		// 如果当前周期中不存在该持仓，说明已被关闭
+		if !currentPositionKeys[posKey] {
+			// 检查是否有AI显式关闭的动作
+			if !explicitCloseKeys[posKey] {
+				// 这是平台关闭的交易（止损、止盈、强平等）
+				// 获取当前价格作为平仓价格
+				currentPrice := prevPos.MarkPrice // 使用上一周期的标记价格作为平仓价格
+				
+				// 如果可能，尝试获取更准确的当前价格
+				marketData, err := market.Get(prevPos.Symbol)
+				if err == nil {
+					currentPrice = marketData.CurrentPrice
+				}
+
+				// 确定关闭动作类型
+				actionType := "platform_close_long"
+				if prevPos.Side == "short" {
+					actionType = "platform_close_short"
+				}
+
+				// 创建平台关闭的决策动作
+				platformAction := logger.DecisionAction{
+					Action:    actionType,
+					Symbol:    prevPos.Symbol,
+					Quantity:  prevPos.PositionAmt,
+					Leverage:  int(prevPos.Leverage),
+					Price:     currentPrice,
+					Timestamp: time.Now(),
+					Success:   true, // 平台关闭是成功的（已经发生了）
+				}
+
+				platformClosedActions = append(platformClosedActions, platformAction)
+			}
+		}
+	}
+
+	return platformClosedActions
+}
+
+// updatePreviousPositions 更新上一周期的持仓快照
+func (at *AutoTrader) updatePreviousPositions(currentPositions []logger.PositionSnapshot) {
+	// 清空并重建上一周期的持仓快照
+	at.previousPositions = make(map[string]logger.PositionSnapshot)
+	
+	for _, pos := range currentPositions {
+		posKey := pos.Symbol + "_" + pos.Side
+		at.previousPositions[posKey] = pos
+	}
 }

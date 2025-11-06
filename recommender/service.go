@@ -57,6 +57,9 @@ func (s *RecommendationService) Stop() {
 
 // generateAndSave generates and saves recommendations
 func (s *RecommendationService) generateAndSave() {
+	// Generate a unique generation_id for this run
+	generationID := time.Now().Format(time.RFC3339Nano)
+	
 	response, err := GenerateRecommendations(s.strategies, 10, s.btcETHLeverage, s.altcoinLeverage)
 	if err != nil {
 		log.Printf("Failed to generate recommendations: %v", err)
@@ -67,14 +70,14 @@ func (s *RecommendationService) generateAndSave() {
 	for strategyName, strategyRecs := range response.Strategies {
 		// Save major coins for this strategy
 		for _, rec := range strategyRecs.MajorCoins {
-			if err := s.saveRecommendation(&rec); err != nil {
+			if err := s.saveRecommendation(&rec, generationID); err != nil {
 				log.Printf("ERROR: Failed to save major coin recommendation for %s [%s]: %v", rec.Symbol, strategyName, err)
 			}
 		}
 
 		// Save altcoins for this strategy
 		for _, rec := range strategyRecs.Altcoins {
-			if err := s.saveRecommendation(&rec); err != nil {
+			if err := s.saveRecommendation(&rec, generationID); err != nil {
 				log.Printf("ERROR: Failed to save altcoin recommendation for %s [%s]: %v", rec.Symbol, strategyName, err)
 			}
 		}
@@ -82,7 +85,7 @@ func (s *RecommendationService) generateAndSave() {
 }
 
 // saveRecommendation saves a recommendation to the database
-func (s *RecommendationService) saveRecommendation(rec *Recommendation) error {
+func (s *RecommendationService) saveRecommendation(rec *Recommendation, generationID string) error {
 	// Convert single strategy to array for database storage (backward compatibility)
 	strategiesJSON, err := json.Marshal([]string{rec.Strategy})
 	if err != nil {
@@ -97,11 +100,11 @@ func (s *RecommendationService) saveRecommendation(rec *Recommendation) error {
 	_, err = s.db.Exec(`
 		INSERT INTO recommendations 
 		(symbol, coin_category, score, confidence, direction, strategies, reasoning, 
-		 price_at_recommendation, leverage_suggested, technical_snapshot, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		 price_at_recommendation, leverage_suggested, technical_snapshot, generation_id, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`, rec.Symbol, rec.Category, rec.Score, rec.Confidence, rec.Direction,
 		string(strategiesJSON), rec.Reasoning, rec.CurrentPrice, rec.SuggestedLeverage,
-		string(technicalJSON), rec.CreatedAt)
+		string(technicalJSON), generationID, rec.CreatedAt)
 
 	return err
 }

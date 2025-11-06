@@ -243,7 +243,7 @@ func (l *DecisionLogger) GetStatistics() (*Statistics, error) {
 				switch action.Action {
 				case "open_long", "open_short":
 					stats.TotalOpenPositions++
-				case "close_long", "close_short", "auto_close_long", "auto_close_short":
+				case "close_long", "close_short", "auto_close_long", "auto_close_short", "platform_close_long", "platform_close_short":
 					stats.TotalClosePositions++
 					// 🔧 BUG FIX：partial_close 不計入 TotalClosePositions，避免重複計數
 					// case "partial_close": // 不計數，因為只有完全平倉才算一次
@@ -351,9 +351,9 @@ func (l *DecisionLogger) AnalyzePerformance(lookbackCycles int) (*PerformanceAna
 
 				symbol := action.Symbol
 				side := ""
-				if action.Action == "open_long" || action.Action == "close_long" || action.Action == "partial_close" || action.Action == "auto_close_long" {
+				if action.Action == "open_long" || action.Action == "close_long" || action.Action == "partial_close" || action.Action == "auto_close_long" || action.Action == "platform_close_long" {
 					side = "long"
-				} else if action.Action == "open_short" || action.Action == "close_short" || action.Action == "auto_close_short" {
+				} else if action.Action == "open_short" || action.Action == "close_short" || action.Action == "auto_close_short" || action.Action == "platform_close_short" {
 					side = "short"
 				}
 
@@ -379,7 +379,7 @@ func (l *DecisionLogger) AnalyzePerformance(lookbackCycles int) (*PerformanceAna
 						"quantity":  action.Quantity,
 						"leverage":  action.Leverage,
 					}
-				case "close_long", "close_short", "auto_close_long", "auto_close_short":
+				case "close_long", "close_short", "auto_close_long", "auto_close_short", "platform_close_long", "platform_close_short":
 					// 移除已平仓记录
 					delete(openPositions, posKey)
 					// partial_close 不處理，保留持倉記錄
@@ -397,9 +397,9 @@ func (l *DecisionLogger) AnalyzePerformance(lookbackCycles int) (*PerformanceAna
 
 			symbol := action.Symbol
 			side := ""
-			if action.Action == "open_long" || action.Action == "close_long" || action.Action == "partial_close" || action.Action == "auto_close_long" {
+			if action.Action == "open_long" || action.Action == "close_long" || action.Action == "partial_close" || action.Action == "auto_close_long" || action.Action == "platform_close_long" {
 				side = "long"
-			} else if action.Action == "open_short" || action.Action == "close_short" || action.Action == "auto_close_short" {
+			} else if action.Action == "open_short" || action.Action == "close_short" || action.Action == "auto_close_short" || action.Action == "platform_close_short" {
 				side = "short"
 			}
 
@@ -431,7 +431,7 @@ func (l *DecisionLogger) AnalyzePerformance(lookbackCycles int) (*PerformanceAna
 					"partialCloseVolume": 0.0,             // 🔧 BUG FIX：部分平倉總量
 				}
 
-			case "close_long", "close_short", "partial_close", "auto_close_long", "auto_close_short":
+			case "close_long", "close_short", "partial_close", "auto_close_long", "auto_close_short", "platform_close_long", "platform_close_short":
 				// 查找对应的开仓记录（可能来自预填充或当前窗口）
 				if openPos, exists := openPositions[posKey]; exists {
 					openPrice := openPos["openPrice"].(float64)

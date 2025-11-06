@@ -161,6 +161,7 @@ func (d *Database) createTables() error {
 			price_at_recommendation REAL NOT NULL,
 			leverage_suggested INTEGER,
 			technical_snapshot TEXT,
+			generation_id TEXT NOT NULL,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
 
@@ -227,11 +228,23 @@ func (d *Database) createTables() error {
 		`CREATE INDEX IF NOT EXISTS idx_recommendations_created_at ON recommendations(created_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_recommendations_symbol ON recommendations(symbol)`,
 		`CREATE INDEX IF NOT EXISTS idx_recommendations_category ON recommendations(coin_category)`,
+		`CREATE INDEX IF NOT EXISTS idx_recommendations_generation_id ON recommendations(generation_id)`,
 	}
 
 	for _, query := range indexQueries {
 		if _, err := d.db.Exec(query); err != nil {
 			return fmt.Errorf("创建推荐表索引失败 [%s]: %w", query, err)
+		}
+	}
+
+	// Migration: Add generation_id column to existing recommendations table if it doesn't exist
+	// SQLite doesn't support IF NOT EXISTS for ALTER TABLE ADD COLUMN, so we check first
+	var columnExists int
+	checkColumnQuery := `SELECT COUNT(*) FROM pragma_table_info('recommendations') WHERE name='generation_id'`
+	if err := d.db.QueryRow(checkColumnQuery).Scan(&columnExists); err == nil && columnExists == 0 {
+		if _, err := d.db.Exec(`ALTER TABLE recommendations ADD COLUMN generation_id TEXT NOT NULL DEFAULT ''`); err != nil {
+			// If column already exists or table doesn't exist, ignore the error
+			log.Printf("Note: Could not add generation_id column (may already exist): %v", err)
 		}
 	}
 

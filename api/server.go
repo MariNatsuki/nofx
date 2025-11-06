@@ -2214,19 +2214,25 @@ func (s *Server) handleGetRecommendations(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	
 	// Query latest recommendations from database for the specified strategy
+	// Filter by the most recent generation_id to get only recommendations from the same run
 	// The strategies field is stored as JSON array, so we need to check if it contains the strategy
 	query := `
 		SELECT symbol, coin_category, score, confidence, direction, strategies, reasoning,
 		       price_at_recommendation, leverage_suggested, technical_snapshot, created_at
 		FROM recommendations
 		WHERE strategies LIKE ?
+		  AND generation_id = (
+		    SELECT MAX(generation_id)
+		    FROM recommendations
+		    WHERE strategies LIKE ?
+		  )
 		ORDER BY created_at DESC
 		LIMIT ?
 	`
 	
 	// Search for strategy in JSON array format: ["strategy_name"] or ["strategy_name", ...]
 	strategyPattern := "%\"" + strategy + "\"%"
-	rows, err := s.database.Query(query, strategyPattern, limit*2) // Get more to filter properly
+	rows, err := s.database.Query(query, strategyPattern, strategyPattern, limit*2) // Get more to filter properly
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to query recommendations: %v", err)})
 		return
@@ -2241,6 +2247,9 @@ func (s *Server) handleGetRecommendations(c *gin.Context) {
 	majorCount := 0
 	altcoinCount := 0
 	
+	// Track seen symbols to deduplicate (keep only latest per symbol)
+	seenSymbols := make(map[string]bool)
+	
 	for rows.Next() {
 		var symbol, coinCategory, direction, strategiesJSON, reasoning, technicalSnapshot string
 		var score float64
@@ -2251,6 +2260,11 @@ func (s *Server) handleGetRecommendations(c *gin.Context) {
 		err := rows.Scan(&symbol, &coinCategory, &score, &confidence, &direction, &strategiesJSON,
 			&reasoning, &priceAtRec, &leverageSuggested, &technicalSnapshot, &createdAt)
 		if err != nil {
+			continue
+		}
+		
+		// Skip if we've already seen this symbol (deduplication - keep only latest)
+		if seenSymbols[symbol] {
 			continue
 		}
 		
@@ -2314,9 +2328,11 @@ func (s *Server) handleGetRecommendations(c *gin.Context) {
 		if coinCategory == "major" && majorCount < limit {
 			strategyRec.MajorCoins = append(strategyRec.MajorCoins, rec)
 			majorCount++
+			seenSymbols[symbol] = true
 		} else if coinCategory == "altcoin" && altcoinCount < limit {
 			strategyRec.Altcoins = append(strategyRec.Altcoins, rec)
 			altcoinCount++
+			seenSymbols[symbol] = true
 		}
 		strategyRecs[strategy] = strategyRec
 		
@@ -2497,23 +2513,32 @@ func (s *Server) handleRefreshRecommendations(c *gin.Context) {
 	var btcStatus string
 	
 	for _, strategy := range body.Strategies {
+		// Filter by the most recent generation_id to get only recommendations from the same run
 		query := `
 			SELECT symbol, coin_category, score, confidence, direction, strategies, reasoning,
 			       price_at_recommendation, leverage_suggested, technical_snapshot, created_at
 			FROM recommendations
 			WHERE strategies LIKE ?
+			  AND generation_id = (
+			    SELECT MAX(generation_id)
+			    FROM recommendations
+			    WHERE strategies LIKE ?
+			  )
 			ORDER BY created_at DESC
 			LIMIT ?
 		`
 		
 		strategyPattern := "%\"" + strategy + "\"%"
-		rows, err := s.database.Query(query, strategyPattern, body.Limit*2)
+		rows, err := s.database.Query(query, strategyPattern, strategyPattern, body.Limit*2)
 		if err != nil {
 			continue
 		}
 		
 		majorCount := 0
 		altcoinCount := 0
+		
+		// Track seen symbols to deduplicate (keep only latest per symbol)
+		seenSymbols := make(map[string]bool)
 		
 		strategyRecs[strategy] = recommender.StrategyRecommendations{
 			MajorCoins: []recommender.Recommendation{},
@@ -2530,6 +2555,11 @@ func (s *Server) handleRefreshRecommendations(c *gin.Context) {
 			err := rows.Scan(&symbol, &coinCategory, &score, &confidence, &direction, &strategiesJSON,
 				&reasoning, &priceAtRec, &leverageSuggested, &technicalSnapshot, &createdAt)
 			if err != nil {
+				continue
+			}
+			
+			// Skip if we've already seen this symbol (deduplication - keep only latest)
+			if seenSymbols[symbol] {
 				continue
 			}
 			
@@ -2585,9 +2615,11 @@ func (s *Server) handleRefreshRecommendations(c *gin.Context) {
 			if coinCategory == "major" && majorCount < body.Limit {
 				strategyRec.MajorCoins = append(strategyRec.MajorCoins, rec)
 				majorCount++
+				seenSymbols[symbol] = true
 			} else if coinCategory == "altcoin" && altcoinCount < body.Limit {
 				strategyRec.Altcoins = append(strategyRec.Altcoins, rec)
 				altcoinCount++
+				seenSymbols[symbol] = true
 			}
 			strategyRecs[strategy] = strategyRec
 			
@@ -2671,18 +2703,21 @@ func (s *Server) handleCalculateRecommendations(c *gin.Context) {
 		return
 	}
 	
+	// Generate a unique generation_id for this run
+	generationID := time.Now().Format(time.RFC3339Nano)
+	
 	// Save recommendations to database
 	for strategyName, strategyRecs := range response.Strategies {
 		// Save major coins for this strategy
 		for _, rec := range strategyRecs.MajorCoins {
-			if err := s.saveRecommendationToDB(&rec); err != nil {
+			if err := s.saveRecommendationToDB(&rec, generationID); err != nil {
 				log.Printf("ERROR: Failed to save major coin recommendation for %s [%s]: %v", rec.Symbol, strategyName, err)
 			}
 		}
 		
 		// Save altcoins for this strategy
 		for _, rec := range strategyRecs.Altcoins {
-			if err := s.saveRecommendationToDB(&rec); err != nil {
+			if err := s.saveRecommendationToDB(&rec, generationID); err != nil {
 				log.Printf("ERROR: Failed to save altcoin recommendation for %s [%s]: %v", rec.Symbol, strategyName, err)
 			}
 		}
@@ -2692,7 +2727,7 @@ func (s *Server) handleCalculateRecommendations(c *gin.Context) {
 }
 
 // saveRecommendationToDB saves a recommendation to the database (helper method)
-func (s *Server) saveRecommendationToDB(rec *recommender.Recommendation) error {
+func (s *Server) saveRecommendationToDB(rec *recommender.Recommendation, generationID string) error {
 	// Convert single strategy to array for database storage (backward compatibility)
 	strategiesJSON, err := json.Marshal([]string{rec.Strategy})
 	if err != nil {
@@ -2706,11 +2741,11 @@ func (s *Server) saveRecommendationToDB(rec *recommender.Recommendation) error {
 	_, err = s.database.Exec(`
 		INSERT INTO recommendations 
 		(symbol, coin_category, score, confidence, direction, strategies, reasoning, 
-		 price_at_recommendation, leverage_suggested, technical_snapshot, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		 price_at_recommendation, leverage_suggested, technical_snapshot, generation_id, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`, rec.Symbol, rec.Category, rec.Score, rec.Confidence, rec.Direction,
 		string(strategiesJSON), rec.Reasoning, rec.CurrentPrice, rec.SuggestedLeverage,
-		string(technicalJSON), rec.CreatedAt)
+		string(technicalJSON), generationID, rec.CreatedAt)
 	
 	return err
 }
