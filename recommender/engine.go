@@ -2,6 +2,7 @@ package recommender
 
 import (
 	"fmt"
+	"log"
 	"nofx/pool"
 	"sort"
 	"time"
