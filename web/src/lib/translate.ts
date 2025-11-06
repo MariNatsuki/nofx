@@ -33,9 +33,11 @@ export async function translateText(
     const targetLangCode = mapLanguageCode(targetLanguage)
 
     // Auto-detect source language and translate to target
+    // Use client: 'gtx' to fix 403 Forbidden errors (as per package documentation)
     const result = await translate(text, {
       to: targetLangCode,
-    })
+      client: 'gtx',
+    } as any)
 
     return result.text || text
   } catch (error) {
