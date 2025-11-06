@@ -3,7 +3,6 @@ import type { AIModel, Exchange, CreateTraderRequest } from '../types'
 import { useLanguage } from '../contexts/LanguageContext'
 import { t } from '../i18n/translations'
 import { getAuthHeaders } from '../lib/api'
-import { useSystemConfig } from '../hooks/useSystemConfig'
 
 // 提取下划线后面的名称部分
 function getShortName(fullName: string): string {
@@ -49,7 +48,6 @@ export function TraderConfigModal({
   onSave,
 }: TraderConfigModalProps) {
   const { language } = useLanguage()
-  const { config: systemConfig } = useSystemConfig()
   const [formData, setFormData] = useState<TraderConfigData>({
     trader_name: '',
     ai_model: '',
@@ -140,12 +138,6 @@ export function TraderConfigModal({
 
   // 获取系统提示词模板列表
   useEffect(() => {
-    // 在管理员模式下，不调用API，直接使用默认模板
-    if (systemConfig?.admin_mode) {
-      setPromptTemplates([{ name: 'default' }, { name: 'aggressive' }])
-      return
-    }
-
     const fetchPromptTemplates = async () => {
       try {
         const response = await fetch('/api/prompt-templates')
@@ -160,7 +152,7 @@ export function TraderConfigModal({
       }
     }
     fetchPromptTemplates()
-  }, [systemConfig?.admin_mode])
+  }, [])
 
   // 当选择的币种改变时，更新输入框
   useEffect(() => {

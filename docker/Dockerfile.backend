@@ -64,6 +64,9 @@ WORKDIR /app
 # Create data directory for Railway volume mount
 RUN mkdir -p /app/data && chmod 755 /app/data
 
+# Copy prompts directory from build stage (required for Railway deployment)
+COPY --from=backend-builder /app/prompts /app/prompts
+
 COPY --from=backend-builder /app/nofx .
 
 # PORT is provided by Railway at runtime

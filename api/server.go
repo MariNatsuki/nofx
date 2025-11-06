@@ -98,13 +98,12 @@ func (s *Server) setupRoutes() {
 		api.GET("/equity-history", s.handleEquityHistory)
 		api.POST("/equity-history-batch", s.handleEquityHistoryBatch)
 
-		// 系统提示词模板管理（仅在非管理员模式下公开）
-		if !auth.IsAdminMode() {
-			// 系统提示词模板管理（无需认证）
-			api.GET("/prompt-templates", s.handleGetPromptTemplates)
-			api.GET("/prompt-templates/:name", s.handleGetPromptTemplate)
+		// 系统提示词模板管理（无需认证，支持管理员和非管理员模式）
+		api.GET("/prompt-templates", s.handleGetPromptTemplates)
+		api.GET("/prompt-templates/:name", s.handleGetPromptTemplate)
 
-			// 公开的竞赛数据（无需认证）
+		// 公开的竞赛数据（仅在非管理员模式下公开）
+		if !auth.IsAdminMode() {
 			api.GET("/traders", s.handlePublicTraderList)
 			api.GET("/competition", s.handlePublicCompetition)
 			api.GET("/top-traders", s.handleTopTraders)

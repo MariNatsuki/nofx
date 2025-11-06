@@ -24,14 +24,85 @@ type PromptManager struct {
 var (
 	// globalPromptManager 全局提示词管理器
 	globalPromptManager *PromptManager
-	// promptsDir 提示词文件夹路径
-	promptsDir = "prompts"
+	// promptsDir 提示词文件夹路径（延迟初始化）
+	promptsDir string
+	// promptsDirOnce 用于确保 promptsDir 只初始化一次
+	promptsDirOnce sync.Once
 )
+
+// resolvePromptsDir 解析提示词目录路径（尝试多个位置）
+// 优先级顺序：
+// 1. /app/prompts (Railway/Docker 生产环境)
+// 2. ./prompts (当前工作目录 - 本地开发)
+// 3. 相对于可执行文件的路径
+// 4. 通过查找 go.mod 或 config.json 检测工作区根目录
+func resolvePromptsDir() string {
+	promptsDirOnce.Do(func() {
+		candidates := []string{
+			"/app/prompts",                    // Railway/Docker 生产环境
+			"prompts",                         // 当前工作目录
+		}
+
+		// 尝试获取可执行文件路径
+		if exePath, err := os.Executable(); err == nil {
+			exeDir := filepath.Dir(exePath)
+			candidates = append(candidates, filepath.Join(exeDir, "prompts"))
+		}
+
+		// 尝试通过查找 go.mod 或 config.json 检测工作区根目录
+		cwd, err := os.Getwd()
+		if err == nil {
+			// 从当前目录向上查找工作区根目录
+			dir := cwd
+			for i := 0; i < 10; i++ { // 最多向上查找10层
+				if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+					candidates = append(candidates, filepath.Join(dir, "prompts"))
+					break
+				}
+				if _, err := os.Stat(filepath.Join(dir, "config.json")); err == nil {
+					candidates = append(candidates, filepath.Join(dir, "prompts"))
+					break
+				}
+				parent := filepath.Dir(dir)
+				if parent == dir {
+					break // 已到根目录
+				}
+				dir = parent
+			}
+		}
+
+		// 尝试每个候选路径
+		var triedPaths []string
+		found := false
+		for _, candidate := range candidates {
+			triedPaths = append(triedPaths, candidate)
+			if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+				// 检查目录中是否有 .txt 文件
+				if files, err := filepath.Glob(filepath.Join(candidate, "*.txt")); err == nil && len(files) > 0 {
+					promptsDir = candidate
+					log.Printf("✓ 找到提示词目录: %s", candidate)
+					found = true
+					break
+				}
+			}
+		}
+
+		// 如果所有路径都失败，使用默认值（用于错误消息）
+		if !found {
+			promptsDir = "prompts"
+			log.Printf("⚠️  未找到提示词目录，尝试的路径: %v", triedPaths)
+			log.Printf("⚠️  将使用默认路径: %s (如果目录不存在，模板加载将失败)", promptsDir)
+		}
+	})
+
+	return promptsDir
+}
 
 // init 包初始化时加载所有提示词模板
 func init() {
 	globalPromptManager = NewPromptManager()
-	if err := globalPromptManager.LoadTemplates(promptsDir); err != nil {
+	resolvedDir := resolvePromptsDir()
+	if err := globalPromptManager.LoadTemplates(resolvedDir); err != nil {
 		log.Printf("⚠️  加载提示词模板失败: %v", err)
 	} else {
 		log.Printf("✓ 已加载 %d 个系统提示词模板", len(globalPromptManager.templates))
@@ -158,5 +229,6 @@ func GetAllPromptTemplates() []*PromptTemplate {
 
 // ReloadPromptTemplates 重新加载所有模板（全局函数）
 func ReloadPromptTemplates() error {
-	return globalPromptManager.ReloadTemplates(promptsDir)
+	resolvedDir := resolvePromptsDir()
+	return globalPromptManager.ReloadTemplates(resolvedDir)
 }
