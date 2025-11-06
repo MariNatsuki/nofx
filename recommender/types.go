@@ -24,17 +24,17 @@ const (
 
 // Recommendation represents a single coin recommendation
 type Recommendation struct {
-	Symbol           string
-	Category         CoinCategory
-	Score            float64  // 0-100
-	Confidence       int      // 0-100
-	Direction        string   // "long" or "short"
-	Strategies       []string // e.g., ["risk_first", "adaptive"]
-	Reasoning        string   // Combined reasoning from all strategies
-	CurrentPrice     float64
-	SuggestedLeverage int     // BTCETHLeverage or AltcoinLeverage
-	TechnicalData    TechnicalSnapshot
-	CreatedAt        time.Time
+	Symbol            string            `json:"symbol"`
+	Category          CoinCategory       `json:"category"`
+	Score             float64            `json:"score"`              // 0-100
+	Confidence        int                `json:"confidence"`          // 0-100
+	Direction         string             `json:"direction"`          // "long" or "short"
+	Strategies        []string           `json:"strategies"`         // e.g., ["risk_first", "adaptive"]
+	Reasoning         string             `json:"reasoning"`          // Combined reasoning from all strategies
+	CurrentPrice      float64            `json:"current_price"`
+	SuggestedLeverage int                `json:"suggested_leverage"` // BTCETHLeverage or AltcoinLeverage
+	TechnicalData     TechnicalSnapshot  `json:"technical_data"`
+	CreatedAt         time.Time          `json:"created_at"`
 }
 
 // TechnicalSnapshot captures key metrics at recommendation time

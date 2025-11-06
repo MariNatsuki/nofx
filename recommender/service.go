@@ -2,6 +2,7 @@ package recommender
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"nofx/config"
 	"nofx/market"
@@ -64,19 +65,29 @@ func (s *RecommendationService) generateAndSave() {
 
 	// Save major coins
 	for _, rec := range response.MajorCoins {
-		s.saveRecommendation(&rec)
+		if err := s.saveRecommendation(&rec); err != nil {
+			log.Printf("ERROR: Failed to save major coin recommendation for %s: %v", rec.Symbol, err)
+		}
 	}
 
 	// Save altcoins
 	for _, rec := range response.Altcoins {
-		s.saveRecommendation(&rec)
+		if err := s.saveRecommendation(&rec); err != nil {
+			log.Printf("ERROR: Failed to save altcoin recommendation for %s: %v", rec.Symbol, err)
+		}
 	}
 }
 
 // saveRecommendation saves a recommendation to the database
 func (s *RecommendationService) saveRecommendation(rec *Recommendation) error {
-	strategiesJSON, _ := json.Marshal(rec.Strategies)
-	technicalJSON, _ := json.Marshal(rec.TechnicalData)
+	strategiesJSON, err := json.Marshal(rec.Strategies)
+	if err != nil {
+		return fmt.Errorf("failed to marshal strategies for %s: %w", rec.Symbol, err)
+	}
+	technicalJSON, err := json.Marshal(rec.TechnicalData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal technical data for %s: %w", rec.Symbol, err)
+	}
 
 	_, err := s.db.Exec(`
 		INSERT INTO recommendations 
