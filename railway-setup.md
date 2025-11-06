@@ -36,14 +36,22 @@ This guide walks you through deploying NOFX to Railway using the two-service arc
 
 ### Backend Environment Variables
 
-Add these environment variables in Railway dashboard:
+Add these environment variables in the **backend service** in Railway dashboard (NOT the frontend service):
 
 **Required**:
 - `JWT_SECRET`: Your JWT secret key (generate a strong random string)
   - Example: Use `openssl rand -base64 32` to generate
 
 **Optional**:
-- `ADMIN_MODE`: Set to `true` to enable admin mode (default: `true`)
+- `ADMIN_MODE`: Set to `true` or `1` to enable admin mode (default: `true`)
+  - **Backend only** - Set this in the backend service, not the frontend
+  - When enabled, all API endpoints require admin authentication
+  - **Important**: When `ADMIN_MODE` is set to `true`, you must also set `NOFX_ADMIN_PASSWORD`
+  - The environment variable value will be synced to the database on startup
+- `NOFX_ADMIN_PASSWORD`: Admin password required when `ADMIN_MODE=true` (required if admin mode is enabled)
+  - **Backend only** - Set this in the backend service, not the frontend
+  - Use a strong, secure password
+  - This is used to authenticate admin users when admin mode is enabled
 - `BETA_MODE`: Set to `true` to enable beta mode (default: `false`)
 - `DB_PATH`: Custom database path (default: `/app/data/config.db`)
 - `TZ`: Timezone (e.g., `UTC`, `America/New_York`)
@@ -187,7 +195,8 @@ The frontend will automatically proxy API requests to the backend.
 |----------|----------|---------|-------------|
 | `PORT` | Auto | `8080` | Railway automatically sets this |
 | `JWT_SECRET` | Yes | - | JWT secret key for authentication |
-| `ADMIN_MODE` | No | `true` | Enable admin mode (no login required) |
+| `ADMIN_MODE` | No | `true` | Enable admin mode. Set to `true` or `1` to enable. When enabled, requires `NOFX_ADMIN_PASSWORD`. Value is synced to database on startup. |
+| `NOFX_ADMIN_PASSWORD` | Conditional | - | Admin password (required when `ADMIN_MODE=true`). Used for admin authentication when admin mode is enabled. |
 | `BETA_MODE` | No | `false` | Enable beta mode (requires beta codes) |
 | `DB_PATH` | No | `/app/data/config.db` | SQLite database path |
 | `TZ` | No | `UTC` | Timezone |

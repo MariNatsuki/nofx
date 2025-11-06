@@ -224,6 +224,21 @@ func main() {
 	apiPortStr, _ := database.GetSystemConfig("api_server_port")
 
 	// 获取管理员模式配置
+	// 首先检查环境变量 ADMIN_MODE，如果设置了则覆盖数据库配置
+	adminModeEnv := os.Getenv("ADMIN_MODE")
+	if adminModeEnv != "" {
+		// 将环境变量值同步到数据库
+		adminModeValue := "false"
+		if adminModeEnv == "true" || adminModeEnv == "1" {
+			adminModeValue = "true"
+		}
+		if err := database.SetSystemConfig("admin_mode", adminModeValue); err != nil {
+			log.Printf("⚠️  同步ADMIN_MODE环境变量到数据库失败: %v", err)
+		} else {
+			log.Printf("✓ 从环境变量 ADMIN_MODE=%s 同步到数据库", adminModeValue)
+		}
+	}
+	
 	adminModeStr, _ := database.GetSystemConfig("admin_mode")
 	adminMode := adminModeStr != "false" // 默认为true
 
