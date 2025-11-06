@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import type { AIModel, Exchange, CreateTraderRequest } from '../types'
 import { useLanguage } from '../contexts/LanguageContext'
 import { t } from '../i18n/translations'
+import { getAuthHeaders } from '../lib/api'
 
 // 提取下划线后面的名称部分
 function getShortName(fullName: string): string {
@@ -194,13 +195,10 @@ export function TraderConfigModal({
     setBalanceFetchError('')
 
     try {
-      const token = localStorage.getItem('token')
       const response = await fetch(
         `/api/account?trader_id=${traderData.trader_id}`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: getAuthHeaders(),
         }
       )
 
