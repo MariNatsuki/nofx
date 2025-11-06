@@ -89,7 +89,7 @@ func (s *RecommendationService) saveRecommendation(rec *Recommendation) error {
 		return fmt.Errorf("failed to marshal technical data for %s: %w", rec.Symbol, err)
 	}
 
-	_, err := s.db.Exec(`
+	_, err = s.db.Exec(`
 		INSERT INTO recommendations 
 		(symbol, coin_category, score, confidence, direction, strategies, reasoning, 
 		 price_at_recommendation, leverage_suggested, technical_snapshot, created_at)
