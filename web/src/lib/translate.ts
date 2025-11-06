@@ -1,8 +1,7 @@
-import translate from 'google-translate-api-x'
 import type { Language } from '../i18n/translations'
 
 /**
- * Maps application language codes to Google Translate language codes
+ * Maps application language codes to translation API language codes
  */
 function mapLanguageCode(lang: Language): string {
   switch (lang) {
@@ -16,7 +15,7 @@ function mapLanguageCode(lang: Language): string {
 }
 
 /**
- * Translates text to the target language using Google Translate API
+ * Translates text to the target language using backend translation API
  * @param text - The text to translate
  * @param targetLanguage - Target language ('en' | 'zh')
  * @returns Promise resolving to translated text, or original text on error
@@ -32,14 +31,24 @@ export async function translateText(
   try {
     const targetLangCode = mapLanguageCode(targetLanguage)
 
-    // Auto-detect source language and translate to target
-    // Use client: 'gtx' to fix 403 Forbidden errors (as per package documentation)
-    const result = await translate(text, {
-      to: targetLangCode,
-      client: 'gtx',
-    } as any)
+    // Call backend translation API
+    const response = await fetch('/api/translate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text,
+        to: targetLangCode,
+      }),
+    })
 
-    return result.text || text
+    if (!response.ok) {
+      throw new Error(`Translation API returned status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data.text || text
   } catch (error) {
     console.error('Translation error:', error)
     // Return original text on error

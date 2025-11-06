@@ -1139,7 +1139,7 @@ function formatDuration(
   if (hours) result += hours.replace('h', t('hours', language))
   if (minutes) result += minutes.replace('m', t('minutes', language))
   if (!hours && seconds)
-    result += seconds.replace(/(\d+)\.?\d*s/, `$1${t('seconds', language)}`)
+    result += seconds.replace(/(\d+\.?\d*)s/, `$1${t('seconds', language)}`)
 
   return result || duration
 }

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
+	"net/url"
 	"nofx/auth"
 	"nofx/config"
 	"nofx/decision"
@@ -101,6 +101,9 @@ func (s *Server) setupRoutes() {
 		// 系统提示词模板管理（无需认证，支持管理员和非管理员模式）
 		api.GET("/prompt-templates", s.handleGetPromptTemplates)
 		api.GET("/prompt-templates/:name", s.handleGetPromptTemplate)
+
+		// 翻译服务（无需认证，支持管理员和非管理员模式）
+		api.POST("/translate", s.handleTranslate)
 
 		// 公开的竞赛数据（仅在非管理员模式下公开）
 		if !auth.IsAdminMode() {
@@ -2016,6 +2019,84 @@ func (s *Server) handleGetPromptTemplate(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"name":    template.Name,
 		"content": template.Content,
+	})
+}
+
+// handleTranslate 翻译文本（使用MyMemory Translation API）
+func (s *Server) handleTranslate(c *gin.Context) {
+	var req struct {
+		Text string `json:"text" binding:"required"`
+		To   string `json:"to" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: text and to are required"})
+		return
+	}
+
+	if strings.TrimSpace(req.Text) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Text cannot be empty"})
+		return
+	}
+
+	// Map language codes
+	targetLang := req.To
+	if targetLang == "zh" {
+		targetLang = "zh-CN"
+	} else if targetLang == "en" {
+		targetLang = "en"
+	}
+
+	// Build MyMemory API URL
+	// Format: https://api.mymemory.translated.net/get?q={text}&langpair=auto|{target}
+	apiURL := fmt.Sprintf("https://api.mymemory.translated.net/get?q=%s&langpair=auto|%s",
+		url.QueryEscape(req.Text),
+		url.QueryEscape(targetLang))
+
+	// Make HTTP request
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		log.Printf("Translation API request failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Translation service unavailable"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Translation API returned status: %d", resp.StatusCode)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Translation service error"})
+		return
+	}
+
+	// Parse response
+	var apiResp struct {
+		ResponseData struct {
+			TranslatedText string `json:"translatedText"`
+		} `json:"responseData"`
+		ResponseStatus int    `json:"responseStatus"`
+		ResponseDetails string `json:"responseDetails,omitempty"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		log.Printf("Failed to parse translation response: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse translation response"})
+		return
+	}
+
+	if apiResp.ResponseStatus != 200 {
+		log.Printf("Translation API error: %s", apiResp.ResponseDetails)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Translation failed"})
+		return
+	}
+
+	translatedText := apiResp.ResponseData.TranslatedText
+	if translatedText == "" {
+		// Fallback to original text if translation is empty
+		translatedText = req.Text
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"text": translatedText,
 	})
 }
 
