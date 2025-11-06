@@ -83,9 +83,7 @@ export function FAQLayout({ language }: FAQLayoutProps) {
           <FAQSearchBar
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
-            placeholder={
-              language === 'zh' ? '搜索常见问题...' : 'Search FAQ...'
-            }
+            placeholder={t('faqSearchPlaceholder', language)}
           />
         </div>
       </div>
@@ -113,9 +111,7 @@ export function FAQLayout({ language }: FAQLayoutProps) {
           ) : (
             <div className="text-center py-12">
               <p className="text-lg" style={{ color: '#848E9C' }}>
-                {language === 'zh'
-                  ? '没有找到匹配的问题'
-                  : 'No matching questions found'}
+                {t('faqNoMatches', language)}
               </p>
               <button
                 onClick={() => setSearchTerm('')}
@@ -126,7 +122,7 @@ export function FAQLayout({ language }: FAQLayoutProps) {
                   color: '#0B0E11',
                 }}
               >
-                {language === 'zh' ? '清除搜索' : 'Clear Search'}
+                {t('faqClearSearch', language)}
               </button>
             </div>
           )}

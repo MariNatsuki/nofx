@@ -368,10 +368,10 @@ export default function AILearning({ traderId }: AILearningProps) {
               </div>
               <div>
                 <div className="text-lg font-bold" style={{ color: '#C4B5FD' }}>
-                  夏普比率
+                  {t('sharpeRatio', language)}
                 </div>
                 <div className="text-xs" style={{ color: '#94A3B8' }}>
-                  风险调整后收益 · AI自我进化指标
+                  {t('sharpeRatioSubtitle', language)}
                 </div>
               </div>
             </div>
@@ -420,12 +420,12 @@ export default function AILearning({ traderId }: AILearningProps) {
                     }}
                   >
                     {performance.sharpe_ratio >= 2
-                      ? '🟢 卓越表现'
+                      ? t('sharpeRatioStatusExcellent', language)
                       : performance.sharpe_ratio >= 1
-                        ? '🟢 良好表现'
+                        ? t('sharpeRatioStatusGood', language)
                         : performance.sharpe_ratio >= 0
-                          ? '🟡 波动较大'
-                          : '🔴 需要调整'}
+                          ? t('sharpeRatioStatusVolatile', language)
+                          : t('sharpeRatioStatusNeedsAdjustment', language)}
                   </div>
                 </div>
               )}
@@ -1010,7 +1010,9 @@ export default function AILearning({ traderId }: AILearningProps) {
                         className="flex items-center justify-between text-xs"
                         style={{ color: '#94A3B8' }}
                       >
-                        <span>⏱️ {formatDuration(trade.duration)}</span>
+                        <span>
+                          ⏱️ {formatDuration(trade.duration, language)}
+                        </span>
                         {trade.was_stop_loss && (
                           <span
                             className="px-2 py-0.5 rounded font-semibold"
@@ -1120,7 +1122,10 @@ export default function AILearning({ traderId }: AILearningProps) {
 }
 
 // 格式化持仓时长
-function formatDuration(duration: string | undefined): string {
+function formatDuration(
+  duration: string | undefined,
+  language: 'en' | 'zh'
+): string {
   if (!duration) return '-'
 
   const match = duration.match(/(\d+h)?(\d+m)?(\d+\.?\d*s)?/)
@@ -1131,9 +1136,10 @@ function formatDuration(duration: string | undefined): string {
   const seconds = match[3] || ''
 
   let result = ''
-  if (hours) result += hours.replace('h', '小时')
-  if (minutes) result += minutes.replace('m', '分')
-  if (!hours && seconds) result += seconds.replace(/(\d+)\.?\d*s/, '$1秒')
+  if (hours) result += hours.replace('h', t('hours', language))
+  if (minutes) result += minutes.replace('m', t('minutes', language))
+  if (!hours && seconds)
+    result += seconds.replace(/(\d+)\.?\d*s/, `$1${t('seconds', language)}`)
 
   return result || duration
 }

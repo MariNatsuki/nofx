@@ -760,6 +760,14 @@ export const translations = {
     profitFactorPoor:
       '❌ Average loss exceeds profit, need to adjust strategy or reduce trading frequency.',
 
+    // Sharpe Ratio Labels
+    sharpeRatio: 'Sharpe Ratio',
+    sharpeRatioSubtitle: 'Risk-adjusted returns · AI self-evolution indicator',
+    sharpeRatioStatusExcellent: '🟢 Excellent performance',
+    sharpeRatioStatusGood: '🟢 Good performance',
+    sharpeRatioStatusVolatile: '🟡 High volatility',
+    sharpeRatioStatusNeedsAdjustment: '🔴 Needs adjustment',
+
     // Trader Config Modal
     traderConfig: 'Trader Configuration',
     traderConfigInfo: "{name}'s configuration information",
@@ -796,6 +804,54 @@ export const translations = {
     betaCodePlaceholder: 'Enter 6-digit beta code',
     betaCodeDescription:
       'Beta code consists of 6 alphanumeric characters, case-sensitive',
+
+    // Login Page
+    loginSubtitleLogin: 'Please enter your email and password',
+    loginSubtitleOTP: 'Please enter the two-factor verification code',
+    adminPasswordLabel: 'Admin Password',
+    adminPasswordPlaceholder: 'Please enter admin password',
+
+    // Trader Config Modal
+    balanceFetchEditOnly: 'Can only fetch current balance in edit mode',
+    balanceFetchFailed: 'Failed to fetch account balance',
+    balanceFetchErrorNetwork:
+      'Failed to fetch balance, please check network connection',
+    editTraderTitle: 'Edit Trader',
+    createTraderTitle: 'Create Trader',
+    editTraderSubtitle: 'Edit trader configuration parameters',
+    createTraderSubtitle: 'Configure new AI trader',
+    traderNameLabel: 'Trader Name',
+    traderNamePlaceholder: 'Please enter trader name',
+    fetchingBalance: 'Fetching...',
+    fetchCurrentBalance: 'Fetch Current Balance',
+    balanceFetchInstruction:
+      'Click "Fetch Current Balance" button to automatically get your exchange account current equity',
+    initialBalanceWarning:
+      'Please enter your exchange account current actual balance. If input is inaccurate, P&L statistics will be incorrect.',
+    collapseSelection: 'Collapse Selection',
+    quickSelection: 'Quick Selection',
+    customPromptLabel: 'Custom Prompt',
+    additionalPromptLabel: 'Additional Prompt',
+    customPromptPlaceholder: 'Enter complete trading strategy prompt...',
+    additionalPromptPlaceholder: 'Enter additional trading strategy prompt...',
+    cancelButton: 'Cancel',
+    saving: 'Saving...',
+    saveChanges: 'Save Changes',
+    createTraderButton: 'Create Trader',
+
+    // Duration Formatting
+    hours: 'hours',
+    minutes: 'minutes',
+    seconds: 'seconds',
+
+    // FAQ Components
+    faqSearchPlaceholder: 'Search FAQ...',
+    faqNoMatches: 'No matching questions found',
+    faqClearSearch: 'Clear Search',
+    faqLinksLabel: 'Links:',
+    faqRoadmap: 'Roadmap',
+    faqTaskDashboard: 'Task Dashboard',
+    faqReferencesLabel: 'References:',
   },
   zh: {
     // Header
@@ -1502,6 +1558,14 @@ export const translations = {
     profitFactorFair: '⚠️ 策略略有盈利但需优化，AI正在调整仓位和止损策略。',
     profitFactorPoor: '❌ 平均亏损大于盈利，需要调整策略或降低交易频率。',
 
+    // Sharpe Ratio Labels
+    sharpeRatio: '夏普比率',
+    sharpeRatioSubtitle: '风险调整后收益 · AI自我进化指标',
+    sharpeRatioStatusExcellent: '🟢 卓越表现',
+    sharpeRatioStatusGood: '🟢 良好表现',
+    sharpeRatioStatusVolatile: '🟡 波动较大',
+    sharpeRatioStatusNeedsAdjustment: '🔴 需要调整',
+
     // Trader Config Modal
     traderConfig: '交易员配置',
     traderConfigInfo: '{name} 的配置信息',
@@ -1537,6 +1601,53 @@ export const translations = {
     betaCodeLabel: '内测码 *',
     betaCodePlaceholder: '请输入6位内测码',
     betaCodeDescription: '内测码由6位字母数字组成，区分大小写',
+
+    // Login Page
+    loginSubtitleLogin: '请输入您的邮箱和密码',
+    loginSubtitleOTP: '请输入两步验证码',
+    adminPasswordLabel: '管理员密码',
+    adminPasswordPlaceholder: '请输入管理员密码',
+
+    // Trader Config Modal
+    balanceFetchEditOnly: '只有在编辑模式下才能获取当前余额',
+    balanceFetchFailed: '获取账户余额失败',
+    balanceFetchErrorNetwork: '获取余额失败，请检查网络连接',
+    editTraderTitle: '修改交易员',
+    createTraderTitle: '创建交易员',
+    editTraderSubtitle: '修改交易员配置参数',
+    createTraderSubtitle: '配置新的AI交易员',
+    traderNameLabel: '交易员名称',
+    traderNamePlaceholder: '请输入交易员名称',
+    fetchingBalance: '获取中...',
+    fetchCurrentBalance: '获取当前余额',
+    balanceFetchInstruction:
+      '点击"获取当前余额"按钮可自动获取您交易所账户的当前净值',
+    initialBalanceWarning:
+      '请输入您交易所账户的当前实际余额。如果输入不准确，P&L统计将会错误。',
+    collapseSelection: '收起选择',
+    quickSelection: '快速选择',
+    customPromptLabel: '自定义提示词',
+    additionalPromptLabel: '附加提示词',
+    customPromptPlaceholder: '输入完整的交易策略提示词...',
+    additionalPromptPlaceholder: '输入额外的交易策略提示...',
+    cancelButton: '取消',
+    saving: '保存中...',
+    saveChanges: '保存修改',
+    createTraderButton: '创建交易员',
+
+    // Duration Formatting
+    hours: '小时',
+    minutes: '分',
+    seconds: '秒',
+
+    // FAQ Components
+    faqSearchPlaceholder: '搜索常见问题...',
+    faqNoMatches: '没有找到匹配的问题',
+    faqClearSearch: '清除搜索',
+    faqLinksLabel: '链接：',
+    faqRoadmap: '路线图',
+    faqTaskDashboard: '任务看板',
+    faqReferencesLabel: '参考文档：',
   },
 }
 

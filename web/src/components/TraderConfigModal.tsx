@@ -186,7 +186,7 @@ export function TraderConfigModal({
 
   const handleFetchCurrentBalance = async () => {
     if (!isEditMode || !traderData?.trader_id) {
-      setBalanceFetchError('只有在编辑模式下才能获取当前余额')
+      setBalanceFetchError(t('balanceFetchEditOnly', language))
       return
     }
 
@@ -205,7 +205,7 @@ export function TraderConfigModal({
       )
 
       if (!response.ok) {
-        throw new Error('获取账户余额失败')
+        throw new Error(t('balanceFetchFailed', language))
       }
 
       const data = await response.json()
@@ -220,7 +220,7 @@ export function TraderConfigModal({
       console.log('已获取当前余额:', currentBalance)
     } catch (error) {
       console.error('获取余额失败:', error)
-      setBalanceFetchError('获取余额失败，请检查网络连接')
+      setBalanceFetchError(t('balanceFetchErrorNetwork', language))
     } finally {
       setIsFetchingBalance(false)
     }
@@ -270,10 +270,14 @@ export function TraderConfigModal({
             </div>
             <div>
               <h2 className="text-xl font-bold text-[#EAECEF]">
-                {isEditMode ? '修改交易员' : '创建交易员'}
+                {isEditMode
+                  ? t('editTraderTitle', language)
+                  : t('createTraderTitle', language)}
               </h2>
               <p className="text-sm text-[#848E9C] mt-1">
-                {isEditMode ? '修改交易员配置参数' : '配置新的AI交易员'}
+                {isEditMode
+                  ? t('editTraderSubtitle', language)
+                  : t('createTraderSubtitle', language)}
               </p>
             </div>
           </div>
@@ -295,7 +299,7 @@ export function TraderConfigModal({
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-[#EAECEF] block mb-2">
-                  交易员名称
+                  {t('traderNameLabel', language)}
                 </label>
                 <input
                   type="text"
@@ -304,7 +308,7 @@ export function TraderConfigModal({
                     handleInputChange('trader_name', e.target.value)
                   }
                   className="w-full px-3 py-2 bg-[#0B0E11] border border-[#2B3139] rounded text-[#EAECEF] focus:border-[#F0B90B] focus:outline-none"
-                  placeholder="请输入交易员名称"
+                  placeholder={t('traderNamePlaceholder', language)}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -404,7 +408,9 @@ export function TraderConfigModal({
                         disabled={isFetchingBalance}
                         className="px-3 py-1 text-xs bg-[#F0B90B] text-black rounded hover:bg-[#E1A706] transition-colors disabled:bg-[#848E9C] disabled:cursor-not-allowed"
                       >
-                        {isFetchingBalance ? '获取中...' : '获取当前余额'}
+                        {isFetchingBalance
+                          ? t('fetchingBalance', language)
+                          : t('fetchCurrentBalance', language)}
                       </button>
                     )}
                   </div>
@@ -437,12 +443,12 @@ export function TraderConfigModal({
                         <line x1="12" x2="12" y1="9" y2="13" />
                         <line x1="12" x2="12.01" y1="17" y2="17" />
                       </svg>
-                      请输入您交易所账户的当前实际余额。如果输入不准确，P&L统计将会错误。
+                      {t('initialBalanceWarning', language)}
                     </p>
                   )}
                   {isEditMode && (
                     <p className="text-xs text-[#848E9C] mt-1">
-                      点击"获取当前余额"按钮可自动获取您交易所账户的当前净值
+                      {t('balanceFetchInstruction', language)}
                     </p>
                   )}
                   {balanceFetchError && (
@@ -532,7 +538,9 @@ export function TraderConfigModal({
                     onClick={() => setShowCoinSelector(!showCoinSelector)}
                     className="px-3 py-1 text-xs bg-[#F0B90B] text-black rounded hover:bg-[#E1A706] transition-colors"
                   >
-                    {showCoinSelector ? '收起选择' : '快速选择'}
+                    {showCoinSelector
+                      ? t('collapseSelection', language)
+                      : t('quickSelection', language)}
                   </button>
                 </div>
                 <input
@@ -673,8 +681,8 @@ export function TraderConfigModal({
               <div>
                 <label className="text-sm text-[#EAECEF] block mb-2">
                   {formData.override_base_prompt
-                    ? '自定义提示词'
-                    : '附加提示词'}
+                    ? t('customPromptLabel', language)
+                    : t('additionalPromptLabel', language)}
                 </label>
                 <textarea
                   value={formData.custom_prompt}
@@ -684,8 +692,8 @@ export function TraderConfigModal({
                   className="w-full px-3 py-2 bg-[#0B0E11] border border-[#2B3139] rounded text-[#EAECEF] focus:border-[#F0B90B] focus:outline-none h-24 resize-none"
                   placeholder={
                     formData.override_base_prompt
-                      ? '输入完整的交易策略提示词...'
-                      : '输入额外的交易策略提示...'
+                      ? t('customPromptPlaceholder', language)
+                      : t('additionalPromptPlaceholder', language)
                   }
                 />
               </div>
@@ -699,7 +707,7 @@ export function TraderConfigModal({
             onClick={onClose}
             className="px-6 py-3 bg-[#2B3139] text-[#EAECEF] rounded-lg hover:bg-[#404750] transition-all duration-200 border border-[#404750]"
           >
-            取消
+            {t('cancelButton', language)}
           </button>
           {onSave && (
             <button
@@ -712,7 +720,11 @@ export function TraderConfigModal({
               }
               className="px-8 py-3 bg-gradient-to-r from-[#F0B90B] to-[#E1A706] text-black rounded-lg hover:from-[#E1A706] hover:to-[#D4951E] transition-all duration-200 disabled:bg-[#848E9C] disabled:cursor-not-allowed font-medium shadow-lg"
             >
-              {isSaving ? '保存中...' : isEditMode ? '保存修改' : '创建交易员'}
+              {isSaving
+                ? t('saving', language)
+                : isEditMode
+                  ? t('saveChanges', language)
+                  : t('createTraderButton', language)}
             </button>
           )}
         </div>

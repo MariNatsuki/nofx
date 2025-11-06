@@ -97,14 +97,14 @@ export function FAQContent({
                   {item.id === 'github-projects-tasks' ? (
                     <div className="space-y-3">
                       <div className="text-base">
-                        {language === 'zh' ? '链接：' : 'Links:'}{' '}
+                        {t('faqLinksLabel', language)}{' '}
                         <a
                           href="https://github.com/orgs/NoFxAiOS/projects/3"
                           target="_blank"
                           rel="noreferrer"
                           style={{ color: '#F0B90B' }}
                         >
-                          {language === 'zh' ? '路线图' : 'Roadmap'}
+                          {t('faqRoadmap', language)}
                         </a>
                         {'  |  '}
                         <a
@@ -113,7 +113,7 @@ export function FAQContent({
                           rel="noreferrer"
                           style={{ color: '#F0B90B' }}
                         >
-                          {language === 'zh' ? '任务看板' : 'Task Dashboard'}
+                          {t('faqTaskDashboard', language)}
                         </a>
                       </div>
                       <ol className="list-decimal pl-5 space-y-1 text-base">
@@ -290,7 +290,7 @@ export function FAQContent({
                   ) : item.id === 'contribute-pr-guidelines' ? (
                     <div className="space-y-3">
                       <div className="text-base">
-                        {language === 'zh' ? '参考文档：' : 'References:'}{' '}
+                        {t('faqReferencesLabel', language)}{' '}
                         <a
                           href="https://github.com/NoFxAiOS/nofx/blob/dev/CONTRIBUTING.md"
                           target="_blank"

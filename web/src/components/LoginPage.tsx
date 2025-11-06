@@ -120,7 +120,9 @@ export function LoginPage() {
               className="text-sm mt-2"
               style={{ color: 'var(--text-secondary)' }}
             >
-              {step === 'login' ? '请输入您的邮箱和密码' : '请输入两步验证码'}
+              {step === 'login'
+                ? t('loginSubtitleLogin', language)
+                : t('loginSubtitleOTP', language)}
             </p>
           </div>
 
@@ -139,7 +141,7 @@ export function LoginPage() {
                     className="block text-sm font-semibold mb-2"
                     style={{ color: 'var(--brand-light-gray)' }}
                   >
-                    管理员密码
+                    {t('adminPasswordLabel', language)}
                   </label>
                   <input
                     type="password"
@@ -151,7 +153,7 @@ export function LoginPage() {
                       border: '1px solid var(--panel-border)',
                       color: 'var(--brand-light-gray)',
                     }}
-                    placeholder="请输入管理员密码"
+                    placeholder={t('adminPasswordPlaceholder', language)}
                     required
                   />
                 </div>
@@ -177,7 +179,9 @@ export function LoginPage() {
                     color: 'var(--brand-black)',
                   }}
                 >
-                  {loading ? t('loading', language) : '登录'}
+                  {loading
+                    ? t('loading', language)
+                    : t('loginButton', language)}
                 </button>
               </form>
             ) : step === 'login' ? (
