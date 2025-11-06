@@ -174,9 +174,6 @@ func calculateLongScore(data *market.Data, strategy StrategyConfig, category Coi
 	// Apply strategy-specific filters
 	score, reasons = applyStrategyFilters(score, data, strategy, reasons)
 
-	// Calculate confidence
-	confidence := calculateConfidence(score, strategy)
-
 	return score, reasons
 }
 
@@ -299,9 +296,6 @@ func calculateShortScore(data *market.Data, strategy StrategyConfig, category Co
 
 	// Apply strategy-specific filters
 	score, reasons = applyStrategyFilters(score, data, strategy, reasons)
-
-	// Calculate confidence
-	confidence := calculateConfidence(score, strategy)
 
 	return score, reasons
 }
