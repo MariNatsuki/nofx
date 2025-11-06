@@ -1124,12 +1124,13 @@ func (s *Server) handleTraderList(c *gin.Context) {
 		// 返回完整的 AIModelID（如 "admin_deepseek"），不要截断
 		// 前端需要完整 ID 来验证模型是否存在（与 handleGetTraderConfig 保持一致）
 		result = append(result, map[string]interface{}{
-			"trader_id":       trader.ID,
-			"trader_name":     trader.Name,
-			"ai_model":        trader.AIModelID, // 使用完整 ID
-			"exchange_id":     trader.ExchangeID,
-			"is_running":      isRunning,
-			"initial_balance": trader.InitialBalance,
+			"trader_id":             trader.ID,
+			"trader_name":            trader.Name,
+			"ai_model":              trader.AIModelID, // 使用完整 ID
+			"exchange_id":           trader.ExchangeID,
+			"is_running":             isRunning,
+			"initial_balance":       trader.InitialBalance,
+			"system_prompt_template": trader.SystemPromptTemplate,
 		})
 	}
 
@@ -1176,6 +1177,7 @@ func (s *Server) handleGetTraderConfig(c *gin.Context) {
 		"trading_symbols":       traderConfig.TradingSymbols,
 		"custom_prompt":         traderConfig.CustomPrompt,
 		"override_base_prompt":  traderConfig.OverrideBasePrompt,
+		"system_prompt_template": traderConfig.SystemPromptTemplate,
 		"is_cross_margin":       traderConfig.IsCrossMargin,
 		"use_coin_pool":         traderConfig.UseCoinPool,
 		"use_oi_top":            traderConfig.UseOITop,
