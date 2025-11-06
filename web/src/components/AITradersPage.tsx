@@ -438,7 +438,10 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
       }),
       updateApi: api.updateModelConfigs,
       refreshApi: api.getModelConfigs,
-      setItems: setAllModels,
+      setItems: (items) => {
+        // 使用函数式更新确保状态正确更新
+        setAllModels([...items])
+      },
       closeModal: () => {
         setShowModelModal(false)
         setEditingModel(null)
@@ -550,7 +553,10 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
       }),
       updateApi: api.updateExchangeConfigs,
       refreshApi: api.getExchangeConfigs,
-      setItems: setAllExchanges,
+      setItems: (items) => {
+        // 使用函数式更新确保状态正确更新
+        setAllExchanges([...items])
+      },
       closeModal: () => {
         setShowExchangeModal(false)
         setEditingExchange(null)
@@ -1470,14 +1476,10 @@ function ModelConfigModal({
           {editingModelId && (
             <button
               type="button"
-              onClick={() => {
-                if (confirm(t('confirmDeleteModel', language))) {
-                  onDelete(editingModelId)
-                }
-              }}
+              onClick={() => onDelete(editingModelId)}
               className="p-2 rounded hover:bg-red-100 transition-colors"
               style={{ background: 'rgba(246, 70, 93, 0.1)', color: '#F6465D' }}
-              title={t('deleteConfigFailed', language)}
+              title={t('delete', language)}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -1829,17 +1831,13 @@ function ExchangeConfigModal({
             {editingExchangeId && (
               <button
                 type="button"
-                onClick={() => {
-                  if (confirm(t('confirmDeleteExchange', language))) {
-                    onDelete(editingExchangeId)
-                  }
-                }}
+                onClick={() => onDelete(editingExchangeId)}
                 className="p-2 rounded hover:bg-red-100 transition-colors"
                 style={{
                   background: 'rgba(246, 70, 93, 0.1)',
                   color: '#F6465D',
                 }}
-                title={t('deleteConfigFailed', language)}
+                title={t('delete', language)}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
