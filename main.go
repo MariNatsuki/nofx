@@ -241,7 +241,7 @@ func main() {
 	}
 	
 	adminModeStr, _ := database.GetSystemConfig("admin_mode")
-	adminMode := adminModeStr == "true" // 仅当显式设置为 "true" 时启用
+	adminMode := adminModeStr != "false" // 默认为true，除非显式设置为 "false"
 
 	// 设置JWT密钥
 	jwtSecret, _ := database.GetSystemConfig("jwt_secret")

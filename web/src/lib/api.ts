@@ -342,15 +342,11 @@ export const api = {
 
   // 推荐系统接口（无需认证）
   async getRecommendations(
-    strategies: string[] = [],
+    strategy: string = 'risk_first',
     limit: number = 10
   ): Promise<any> {
-    const strategiesParam =
-      strategies.length > 0
-        ? strategies.join(',')
-        : 'risk_first,adaptive_relaxed'
     const res = await fetch(
-      `${API_BASE}/recommendations/current?strategies=${strategiesParam}&limit=${limit}`
+      `${API_BASE}/recommendations/current?strategy=${strategy}&limit=${limit}`
     )
     if (!res.ok) throw new Error('errorGetRecommendationsFailed')
     return res.json()

@@ -5,7 +5,7 @@ interface Recommendation {
   score: number
   confidence: number
   direction: string
-  strategies: string[]
+  strategy: string
   reasoning: string
   current_price: number
   suggested_leverage: number
@@ -105,24 +105,19 @@ export default function RecommendationCard({
         </span>
       </div>
 
-      {/* Strategies */}
-      {recommendation.strategies && recommendation.strategies.length > 0 && (
+      {/* Strategy */}
+      {recommendation.strategy && (
         <div className="mb-3">
-          <div className="flex flex-wrap gap-1">
-            {recommendation.strategies.map((strategy) => (
-              <span
-                key={strategy}
-                className="text-xs px-2 py-1 rounded"
-                style={{
-                  background: '#1E2329',
-                  color: '#B7BDC6',
-                  border: '1px solid #2B3139',
-                }}
-              >
-                {strategy}
-              </span>
-            ))}
-          </div>
+          <span
+            className="text-xs px-2 py-1 rounded capitalize"
+            style={{
+              background: '#1E2329',
+              color: '#B7BDC6',
+              border: '1px solid #2B3139',
+            }}
+          >
+            {recommendation.strategy.replace(/_/g, ' ')}
+          </span>
         </div>
       )}
 

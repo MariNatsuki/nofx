@@ -11,26 +11,26 @@ interface Recommendation {
   score: number
   confidence: number
   direction: string
-  strategies: string[]
+  strategy: string
   reasoning: string
   current_price: number
   suggested_leverage: number
 }
 
-interface RecommendationResponse {
+interface StrategyRecommendations {
   major_coins: Recommendation[]
   altcoins: Recommendation[]
-  strategies_applied: string[]
+}
+
+interface RecommendationResponse {
+  strategies: Record<string, StrategyRecommendations>
   updated_at: string
   btc_status: string
 }
 
 export default function RecommendationsPage() {
   const { language } = useLanguage()
-  const [selectedStrategies, setSelectedStrategies] = useState([
-    'risk_first',
-    'adaptive_relaxed',
-  ])
+  const [selectedStrategy, setSelectedStrategy] = useState('risk_first')
   const [recommendations, setRecommendations] =
     useState<RecommendationResponse | null>(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
@@ -42,7 +42,7 @@ export default function RecommendationsPage() {
     setLoading(true)
     setError(null)
     try {
-      const data = await api.getRecommendations(selectedStrategies, 10)
+      const data = await api.getRecommendations(selectedStrategy, 10)
       setRecommendations(data)
       setCountdown(180)
     } catch (err) {
@@ -55,7 +55,7 @@ export default function RecommendationsPage() {
 
   useEffect(() => {
     loadRecommendations()
-  }, [selectedStrategies])
+  }, [selectedStrategy])
 
   useEffect(() => {
     if (!autoRefresh) return
@@ -71,7 +71,7 @@ export default function RecommendationsPage() {
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [autoRefresh, selectedStrategies])
+  }, [autoRefresh, selectedStrategy])
 
   const formatCountdown = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -92,8 +92,8 @@ export default function RecommendationsPage() {
 
         {/* Strategy Selector */}
         <StrategySelector
-          selectedStrategies={selectedStrategies}
-          onChange={setSelectedStrategies}
+          selectedStrategy={selectedStrategy}
+          onChange={setSelectedStrategy}
         />
 
         {/* Controls */}
@@ -194,23 +194,34 @@ export default function RecommendationsPage() {
         </div>
       )}
 
-      {/* Major Coins Section */}
-      {recommendations && (
-        <CategorySection
-          title={t('recommendations.majorCoins', language)}
-          coins={recommendations.major_coins}
-          icon="📊"
-        />
-      )}
+      {/* Display recommendations grouped by strategy */}
+      {recommendations &&
+        Object.entries(recommendations.strategies).map(
+          ([strategyName, strategyRecs]) => (
+            <div key={strategyName} className="mb-12">
+              <h2
+                className="text-2xl font-bold mb-6 capitalize"
+                style={{ color: '#EAECEF' }}
+              >
+                {strategyName.replace(/_/g, ' ')}
+              </h2>
 
-      {/* Altcoins Section */}
-      {recommendations && (
-        <CategorySection
-          title={t('recommendations.altcoins', language)}
-          coins={recommendations.altcoins}
-          icon="🪙"
-        />
-      )}
+              {/* Major Coins Section */}
+              <CategorySection
+                title={t('recommendations.majorCoins', language)}
+                coins={strategyRecs.major_coins}
+                icon="📊"
+              />
+
+              {/* Altcoins Section */}
+              <CategorySection
+                title={t('recommendations.altcoins', language)}
+                coins={strategyRecs.altcoins}
+                icon="🪙"
+              />
+            </div>
+          )
+        )}
 
       {/* Performance Section */}
       {recommendations && (

@@ -24,17 +24,17 @@ const (
 
 // Recommendation represents a single coin recommendation
 type Recommendation struct {
-	Symbol            string            `json:"symbol"`
-	Category          CoinCategory       `json:"category"`
-	Score             float64            `json:"score"`              // 0-100
-	Confidence        int                `json:"confidence"`          // 0-100
-	Direction         string             `json:"direction"`          // "long" or "short"
-	Strategies        []string           `json:"strategies"`         // e.g., ["risk_first", "adaptive"]
-	Reasoning         string             `json:"reasoning"`          // Combined reasoning from all strategies
-	CurrentPrice      float64            `json:"current_price"`
-	SuggestedLeverage int                `json:"suggested_leverage"` // BTCETHLeverage or AltcoinLeverage
-	TechnicalData     TechnicalSnapshot  `json:"technical_data"`
-	CreatedAt         time.Time          `json:"created_at"`
+	Symbol            string           `json:"symbol"`
+	Category          CoinCategory      `json:"category"`
+	Score             float64          `json:"score"`              // 0-100
+	Confidence        int              `json:"confidence"`          // 0-100
+	Direction         string           `json:"direction"`          // "long" or "short"
+	Strategy          string           `json:"strategy"`           // Single strategy name (e.g., "risk_first")
+	Reasoning         string           `json:"reasoning"`          // Reasoning from this strategy
+	CurrentPrice      float64          `json:"current_price"`
+	SuggestedLeverage int              `json:"suggested_leverage"` // BTCETHLeverage or AltcoinLeverage
+	TechnicalData     TechnicalSnapshot `json:"technical_data"`
+	CreatedAt         time.Time         `json:"created_at"`
 }
 
 // TechnicalSnapshot captures key metrics at recommendation time
@@ -51,13 +51,17 @@ type TechnicalSnapshot struct {
 	BTCDirection string  `json:"btc_direction"` // "bullish", "bearish", "neutral"
 }
 
+// StrategyRecommendations contains recommendations for a single strategy
+type StrategyRecommendations struct {
+	MajorCoins []Recommendation `json:"major_coins"`
+	Altcoins   []Recommendation  `json:"altcoins"`
+}
+
 // RecommendationResponse is the API response structure
 type RecommendationResponse struct {
-	MajorCoins        []Recommendation `json:"major_coins"`
-	Altcoins          []Recommendation `json:"altcoins"`
-	StrategiesApplied []string         `json:"strategies_applied"`
-	UpdatedAt         time.Time        `json:"updated_at"`
-	BTCStatus         string            `json:"btc_status"` // Current BTC direction
+	Strategies map[string]StrategyRecommendations `json:"strategies"` // Key: strategy name, Value: recommendations
+	UpdatedAt  time.Time                         `json:"updated_at"`
+	BTCStatus  string                             `json:"btc_status"` // Current BTC direction
 }
 
 // StrategyScore represents a score from a single strategy

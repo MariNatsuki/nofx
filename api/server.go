@@ -2201,9 +2201,14 @@ func (s *Server) getEquityHistoryForTraders(traderIDs []string) map[string]inter
 
 // handleGetRecommendations 获取当前推荐
 func (s *Server) handleGetRecommendations(c *gin.Context) {
-	// Get strategies from query param
-	strategiesParam := c.DefaultQuery("strategies", "risk_first,adaptive_relaxed")
+	// Get strategy from query param (accept single strategy, or default to first if multiple provided)
+	strategiesParam := c.DefaultQuery("strategy", "risk_first")
+	// If multiple strategies provided, use only the first one
 	strategies := strings.Split(strategiesParam, ",")
+	strategy := strings.TrimSpace(strategies[0])
+	if strategy == "" {
+		strategy = "risk_first"
+	}
 	
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	
@@ -2221,8 +2226,8 @@ func (s *Server) handleGetRecommendations(c *gin.Context) {
 		}
 	}
 	
-	// Generate recommendations
-	response, err := recommender.GenerateRecommendations(strategies, limit, btcETHLeverage, altcoinLeverage)
+	// Generate recommendations for the single strategy
+	response, err := recommender.GenerateRecommendations([]string{strategy}, limit, btcETHLeverage, altcoinLeverage)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

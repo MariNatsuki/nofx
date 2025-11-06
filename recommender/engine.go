@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// GenerateRecommendations generates recommendations for all coins
+// GenerateRecommendations generates recommendations separately for each strategy
 func GenerateRecommendations(strategies []string, limit int, btcETHLeverage, altcoinLeverage int) (*RecommendationResponse, error) {
 	// 1. Get all available coins from coin pool
 	coins, err := pool.GetCoinPool()
@@ -23,48 +23,61 @@ func GenerateRecommendations(strategies []string, limit int, btcETHLeverage, alt
 
 	// 3. Load strategy configurations
 	strategyConfigs := loadStrategyConfigs(strategies)
+	if len(strategyConfigs) == 0 {
+		return nil, fmt.Errorf("no valid strategies found")
+	}
 
 	// 4. Analyze BTC direction (cache for 3 minutes)
 	btcDirection := analyzeBTCDirection()
 	log.Printf("📊 推荐引擎: BTC方向分析: %s", btcDirection)
 
-	// 5. Score major coins
-	majorRecs := []Recommendation{}
-	for _, coin := range majorCoins {
-		symbol := coin.Pair
-		rec := scoreCoin(symbol, CategoryMajor, strategyConfigs, btcDirection, btcETHLeverage, altcoinLeverage)
-		if rec != nil {
-			rec.CreatedAt = time.Now()
-			majorRecs = append(majorRecs, *rec)
+	// 5. Generate recommendations for each strategy separately
+	strategyRecs := make(map[string]StrategyRecommendations)
+
+	for _, strategyConfig := range strategyConfigs {
+		log.Printf("📊 推荐引擎: 开始处理策略 [%s]", strategyConfig.Name)
+
+		// Score major coins for this strategy
+		majorRecs := []Recommendation{}
+		for _, coin := range majorCoins {
+			symbol := coin.Pair
+			rec := scoreCoin(symbol, CategoryMajor, strategyConfig, btcDirection, btcETHLeverage, altcoinLeverage)
+			if rec != nil {
+				rec.CreatedAt = time.Now()
+				majorRecs = append(majorRecs, *rec)
+			}
+		}
+		log.Printf("📊 推荐引擎: [%s] 主流币种评分完成 - %d 个币种通过评分", strategyConfig.Name, len(majorRecs))
+
+		// Score altcoins for this strategy
+		altcoinRecs := []Recommendation{}
+		for _, coin := range altcoins {
+			symbol := coin.Pair
+			rec := scoreCoin(symbol, CategoryAltcoin, strategyConfig, btcDirection, btcETHLeverage, altcoinLeverage)
+			if rec != nil {
+				rec.CreatedAt = time.Now()
+				altcoinRecs = append(altcoinRecs, *rec)
+			}
+		}
+		log.Printf("📊 推荐引擎: [%s] 山寨币评分完成 - %d 个币种通过评分", strategyConfig.Name, len(altcoinRecs))
+
+		// Rank and filter for this strategy
+		majorRecsBeforeFilter := len(majorRecs)
+		majorRecs = rankAndFilter(majorRecs, min(5, limit), []StrategyConfig{strategyConfig})
+		altcoinRecsBeforeFilter := len(altcoinRecs)
+		altcoinRecs = rankAndFilter(altcoinRecs, limit, []StrategyConfig{strategyConfig})
+		log.Printf("📊 推荐引擎: [%s] 最终筛选 - 主流币种: %d/%d, 山寨币: %d/%d", strategyConfig.Name, len(majorRecs), majorRecsBeforeFilter, len(altcoinRecs), altcoinRecsBeforeFilter)
+
+		strategyRecs[strategyConfig.Name] = StrategyRecommendations{
+			MajorCoins: majorRecs,
+			Altcoins:   altcoinRecs,
 		}
 	}
-	log.Printf("📊 推荐引擎: 主流币种评分完成 - %d 个币种通过评分", len(majorRecs))
-
-	// 6. Score altcoins
-	altcoinRecs := []Recommendation{}
-	for _, coin := range altcoins {
-		symbol := coin.Pair
-		rec := scoreCoin(symbol, CategoryAltcoin, strategyConfigs, btcDirection, btcETHLeverage, altcoinLeverage)
-		if rec != nil {
-			rec.CreatedAt = time.Now()
-			altcoinRecs = append(altcoinRecs, *rec)
-		}
-	}
-	log.Printf("📊 推荐引擎: 山寨币评分完成 - %d 个币种通过评分", len(altcoinRecs))
-
-	// 7. Rank and filter
-	majorRecsBeforeFilter := len(majorRecs)
-	majorRecs = rankAndFilter(majorRecs, min(5, limit), strategyConfigs)
-	altcoinRecsBeforeFilter := len(altcoinRecs)
-	altcoinRecs = rankAndFilter(altcoinRecs, limit, strategyConfigs)
-	log.Printf("📊 推荐引擎: 最终筛选 - 主流币种: %d/%d, 山寨币: %d/%d", len(majorRecs), majorRecsBeforeFilter, len(altcoinRecs), altcoinRecsBeforeFilter)
 
 	return &RecommendationResponse{
-		MajorCoins:        majorRecs,
-		Altcoins:          altcoinRecs,
-		StrategiesApplied: strategies,
-		UpdatedAt:         time.Now(),
-		BTCStatus:         btcDirection,
+		Strategies: strategyRecs,
+		UpdatedAt:   time.Now(),
+		BTCStatus:   btcDirection,
 	}, nil
 }
 

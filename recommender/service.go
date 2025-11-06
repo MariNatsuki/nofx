@@ -63,28 +63,33 @@ func (s *RecommendationService) generateAndSave() {
 		return
 	}
 
-	// Save major coins
-	for _, rec := range response.MajorCoins {
-		if err := s.saveRecommendation(&rec); err != nil {
-			log.Printf("ERROR: Failed to save major coin recommendation for %s: %v", rec.Symbol, err)
+	// Save recommendations from each strategy
+	for strategyName, strategyRecs := range response.Strategies {
+		// Save major coins for this strategy
+		for _, rec := range strategyRecs.MajorCoins {
+			if err := s.saveRecommendation(&rec); err != nil {
+				log.Printf("ERROR: Failed to save major coin recommendation for %s [%s]: %v", rec.Symbol, strategyName, err)
+			}
 		}
-	}
 
-	// Save altcoins
-	for _, rec := range response.Altcoins {
-		if err := s.saveRecommendation(&rec); err != nil {
-			log.Printf("ERROR: Failed to save altcoin recommendation for %s: %v", rec.Symbol, err)
+		// Save altcoins for this strategy
+		for _, rec := range strategyRecs.Altcoins {
+			if err := s.saveRecommendation(&rec); err != nil {
+				log.Printf("ERROR: Failed to save altcoin recommendation for %s [%s]: %v", rec.Symbol, strategyName, err)
+			}
 		}
 	}
 }
 
 // saveRecommendation saves a recommendation to the database
 func (s *RecommendationService) saveRecommendation(rec *Recommendation) error {
-	strategiesJSON, err := json.Marshal(rec.Strategies)
+	// Convert single strategy to array for database storage (backward compatibility)
+	strategiesJSON, err := json.Marshal([]string{rec.Strategy})
 	if err != nil {
-		return fmt.Errorf("failed to marshal strategies for %s: %w", rec.Symbol, err)
+		return fmt.Errorf("failed to marshal strategy for %s: %w", rec.Symbol, err)
 	}
-	technicalJSON, err := json.Marshal(rec.TechnicalData)
+	var technicalJSON []byte
+	technicalJSON, err = json.Marshal(rec.TechnicalData)
 	if err != nil {
 		return fmt.Errorf("failed to marshal technical data for %s: %w", rec.Symbol, err)
 	}

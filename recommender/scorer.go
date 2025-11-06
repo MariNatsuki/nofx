@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// scoreCoin scores a coin using all strategies
-func scoreCoin(symbol string, category CoinCategory, strategies []StrategyConfig, btcDirection string, btcETHLeverage, altcoinLeverage int) *Recommendation {
+// scoreCoin scores a coin using a single strategy
+func scoreCoin(symbol string, category CoinCategory, strategy StrategyConfig, btcDirection string, btcETHLeverage, altcoinLeverage int) *Recommendation {
 	// Fetch market data using existing market.Get()
 	data, err := market.Get(symbol)
 	if err != nil {
@@ -31,42 +31,78 @@ func scoreCoin(symbol string, category CoinCategory, strategies []StrategyConfig
 		return nil
 	}
 
-	// Calculate scores for each strategy
-	strategyScores := []StrategyScore{}
-	for _, strategy := range strategies {
-		longScore, longReasons := calculateLongScore(data, strategy, category, btcDirection)
-		shortScore, shortReasons := calculateShortScore(data, strategy, category, btcDirection)
+	// Calculate scores for the strategy
+	longScore, longReasons := calculateLongScore(data, strategy, category, btcDirection)
+	shortScore, shortReasons := calculateShortScore(data, strategy, category, btcDirection)
 
-		// Determine best direction
-		if longScore > shortScore && longScore >= 40 {
-			strategyScores = append(strategyScores, StrategyScore{
-				StrategyName: strategy.Name,
-				Score:         longScore,
-				Direction:     "long",
-				Reasons:       longReasons,
-				MinConfidence: strategy.MinConfidence,
-			})
-		} else if shortScore >= 40 {
-			strategyScores = append(strategyScores, StrategyScore{
-				StrategyName: strategy.Name,
-				Score:         shortScore,
-				Direction:     "short",
-				Reasons:       shortReasons,
-				MinConfidence: strategy.MinConfidence,
-			})
-		}
-	}
+	// Determine best direction
+	var finalScore float64
+	var finalDirection string
+	var finalReasons []string
 
-	if len(strategyScores) == 0 {
-		log.Printf("⚠️  推荐引擎: %s 无符合条件的策略信号 (所有策略评分 < 40)", symbol)
+	if longScore > shortScore && longScore >= 40 {
+		finalScore = longScore
+		finalDirection = "long"
+		finalReasons = longReasons
+	} else if shortScore >= 40 {
+		finalScore = shortScore
+		finalDirection = "short"
+		finalReasons = shortReasons
+	} else {
+		log.Printf("⚠️  推荐引擎: %s [%s] 无符合条件的信号 (评分 < 40)", symbol, strategy.Name)
 		return nil // No qualifying signals
 	}
 
-	// Aggregate scores
-	rec := aggregateStrategyScores(symbol, category, data, strategyScores, btcETHLeverage, altcoinLeverage)
-	if rec != nil {
-		log.Printf("✓ 推荐引擎: %s 评分完成 - Score: %.1f, Confidence: %d, Direction: %s", symbol, rec.Score, rec.Confidence, rec.Direction)
+	// Calculate confidence
+	confidence := calculateConfidence(finalScore, strategy)
+	if confidence == 0 {
+		log.Printf("⚠️  推荐引擎: %s [%s] 置信度不足", symbol, strategy.Name)
+		return nil
 	}
+
+	// Determine leverage
+	suggestedLeverage := altcoinLeverage
+	if category == CategoryMajor {
+		suggestedLeverage = btcETHLeverage
+	}
+
+	// Create technical snapshot
+	technicalData := TechnicalSnapshot{
+		EMA20_3m:     data.CurrentEMA20,
+		MACD_3m:      data.CurrentMACD,
+		RSI7:         data.CurrentRSI7,
+		VolumeRatio:  1.0,
+		OIChange:     calculateOIChange(data.OpenInterest),
+		FundingRate:  data.FundingRate,
+		BTCDirection: analyzeBTCDirection(),
+	}
+
+	if data.LongerTermContext != nil {
+		technicalData.EMA20_4h = data.LongerTermContext.EMA20
+		technicalData.MACD_4h = getLatestValue(data.LongerTermContext.MACDValues)
+		if data.LongerTermContext.AverageVolume > 0 {
+			technicalData.VolumeRatio = data.LongerTermContext.CurrentVolume / data.LongerTermContext.AverageVolume
+		}
+	}
+
+	if data.IntradaySeries != nil {
+		technicalData.RSI14 = getLatestValue(data.IntradaySeries.RSI14Values)
+	}
+
+	rec := &Recommendation{
+		Symbol:            symbol,
+		Category:          category,
+		Score:             finalScore,
+		Confidence:        confidence,
+		Direction:         finalDirection,
+		Strategy:          strategy.Name,
+		Reasoning:         strings.Join(finalReasons, "; "),
+		CurrentPrice:      data.CurrentPrice,
+		SuggestedLeverage: suggestedLeverage,
+		TechnicalData:     technicalData,
+	}
+
+	log.Printf("✓ 推荐引擎: %s [%s] 评分完成 - Score: %.1f, Confidence: %d, Direction: %s", symbol, strategy.Name, rec.Score, rec.Confidence, rec.Direction)
 	return rec
 }
 

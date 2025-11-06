@@ -1,6 +1,6 @@
 interface StrategySelectorProps {
-  selectedStrategies: string[]
-  onChange: (strategies: string[]) => void
+  selectedStrategy: string
+  onChange: (strategy: string) => void
 }
 
 const strategies = [
@@ -14,21 +14,13 @@ const strategies = [
 ]
 
 export default function StrategySelector({
-  selectedStrategies,
+  selectedStrategy,
   onChange,
 }: StrategySelectorProps) {
-  const toggleStrategy = (strategyId: string) => {
-    if (selectedStrategies.includes(strategyId)) {
-      onChange(selectedStrategies.filter((s) => s !== strategyId))
-    } else {
-      onChange([...selectedStrategies, strategyId])
-    }
-  }
-
   return (
     <div className="flex flex-wrap gap-2 mb-4">
       {strategies.map((strategy) => {
-        const isSelected = selectedStrategies.includes(strategy.id)
+        const isSelected = selectedStrategy === strategy.id
         return (
           <label
             key={strategy.id}
@@ -42,9 +34,11 @@ export default function StrategySelector({
             }}
           >
             <input
-              type="checkbox"
+              type="radio"
+              name="strategy"
+              value={strategy.id}
               checked={isSelected}
-              onChange={() => toggleStrategy(strategy.id)}
+              onChange={() => onChange(strategy.id)}
               className="w-4 h-4"
               style={{ accentColor: '#F0B90B' }}
             />
