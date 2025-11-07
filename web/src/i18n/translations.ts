@@ -720,7 +720,7 @@ export const translations = {
 
     faqStrategyComparison: 'Can you compare all strategies in a table?',
     faqStrategyComparisonAnswer:
-      'Quick comparison: | Strategy | Confidence | Frequency | Risk | Best For | |----------|------------|-----------|------|----------| | adaptive | ≥85 | Very low | Very low | Maximum protection | | adaptive_relaxed | ≥80 | 8-15/day | Low | More activity, still safe | | risk_first | ≥75 | 2-4/day | Very low | Capital preservation | | nof1 | ≥80-85 | 2-4/day | Low | Conservative quality | | default | ≥75 | 2-4/day | Medium | Beginners | | Hansen | Variable | 2-4/day | Medium | English/Hyperliquid | | taro_long | AI-determined | Variable | Medium-High | Advanced autonomy |',
+      'Quick comparison: | Strategy | Confidence | Frequency | Risk | Best For | |----------|------------|-----------|------|----------| | adaptive | ≥85 | Very low | Very low | Maximum protection | | adaptive_relaxed | ≥80 | 8-15/day | Low | More activity, still safe | | adaptive_moderate | ≥80 | 8-15/day | Low | Balanced trading | | adaptive_altcoin | ≥80 | 8-15/day | Low | Altcoin focus | | risk_first | ≥85 | 2-4/day | Very low | Capital preservation | | nof1 | ≥75 | 2-4/day | Low | Conservative quality | | default | ≥75 | 2-4/day | Medium | Beginners | | Hansen | ≥85 | 2-4/day | Medium | English/Hyperliquid | | taro_long | AI-determined | Variable | Medium-High | Advanced autonomy |',
 
     faqStrategyCustomization: 'Can I customize or modify strategies?',
     faqStrategyCustomizationAnswer:
@@ -732,7 +732,7 @@ export const translations = {
       'Learn about all available trading strategies and choose the one that fits your risk tolerance',
     strategiesIntroductionTitle: 'Introduction',
     strategiesIntroduction:
-      'NOFX offers 7 different trading strategies, each designed for different risk profiles and trading styles. All strategies prioritize capital preservation and quality over quantity, but they differ in confidence thresholds, trade frequency, and risk management approaches.',
+      'NOFX offers 9 different trading strategies, each designed for different risk profiles and trading styles. All strategies prioritize capital preservation and quality over quantity, but they differ in confidence thresholds, trade frequency, and risk management approaches.',
     strategiesComparisonTitle: 'Strategy Comparison',
     strategiesComparisonIntro:
       'Here is a quick comparison of all available strategies:',
@@ -757,6 +757,8 @@ export const translations = {
     strategyBestForBeginners: 'Beginners',
     strategyBestForEnglishHyperliquid: 'English/Hyperliquid',
     strategyBestForAdvancedAutonomy: 'Advanced autonomy',
+    strategyBestForBalancedTrading: 'Balanced trading',
+    strategyBestForAltcoinFocus: 'Altcoin focus',
     strategiesDetailsTitle: 'Strategy Details',
     strategyDefaultTitle: 'Default Strategy',
     strategyDefaultDescription:
@@ -767,15 +769,21 @@ export const translations = {
     strategyAdaptiveRelaxedTitle: 'Adaptive Relaxed Strategy',
     strategyAdaptiveRelaxedDescription:
       'A more active version of the adaptive strategy while maintaining core risk controls. Uses confidence threshold ≥80 (vs 85), cooldown 6min (vs 9min), 2 timeframes (vs 3), 4/8 checklist (vs 5/8), and shorter loss pauses. Expected to trade 8-15 times per day. Best for users who want more trading activity but still prioritize safety.',
+    strategyAdaptiveModerateTitle: 'Adaptive Moderate Strategy',
+    strategyAdaptiveModerateDescription:
+      'A balanced strategy that balances risk control with trading frequency. Uses confidence threshold ≥80 (85 if BTC data missing), cooldown 6min, 2 timeframes, 4/7 checklist, and BTC confirmation is recommended but not mandatory. Expected to trade 8-15 times per day. Best for users who want balanced trading with moderate risk controls.',
+    strategyAdaptiveAltcoinTitle: 'Adaptive Altcoin Strategy',
+    strategyAdaptiveAltcoinDescription:
+      'A strategy focused on altcoin trading with BTC as reference only. Uses confidence threshold ≥80, cooldown 6min, 2 timeframes, 4/7 checklist. BTC confirmation is optional and does not block trades. Designed for users who focus on altcoin trading and may not have BTC data. Expected to trade 8-15 times per day. Best for users who want more altcoin trading opportunities while maintaining risk control.',
     strategyRiskFirstTitle: 'Risk First Strategy',
     strategyRiskFirstDescription:
-      'Prioritizes capital preservation with explicit "Capital Preservation > Profit" principle. Uses confidence threshold ≥75, trades 2-4 times per day, with very low risk level. Features volatility-adaptive position sizing and systematic exit strategies. Best for users who want maximum capital protection.',
+      'Prioritizes capital preservation with explicit "Capital Preservation > Profit" principle. Uses confidence threshold ≥85, trades 2-4 times per day, with very low risk level. Features volatility-adaptive position sizing and systematic exit strategies. Best for users who want maximum capital protection.',
     strategyNof1Title: 'NOF1 Strategy',
     strategyNof1Description:
-      'A conservative quality-focused strategy. Uses confidence threshold ≥80-85, trades 2-4 times per day, with low risk level. Emphasizes quality over quantity in trading decisions. Best for users who prefer conservative, high-quality trades.',
+      'A conservative quality-focused strategy. Uses confidence threshold ≥75, trades 2-4 times per day, with low risk level. Emphasizes quality over quantity in trading decisions. Best for users who prefer conservative, high-quality trades.',
     strategyHansenTitle: 'Hansen Strategy',
     strategyHansenDescription:
-      'Designed for English-speaking users and Hyperliquid exchange. Uses variable confidence thresholds, trades 2-4 times per day, with medium risk level. Optimized for specific exchange characteristics and English language prompts.',
+      'Designed for English-speaking users and Hyperliquid exchange. Uses confidence threshold ≥85, trades 2-4 times per day, with medium risk level. Optimized for specific exchange characteristics and English language prompts.',
     strategyTaroLongTitle: 'Taro Long Strategy',
     strategyTaroLongDescription:
       'An advanced autonomous strategy with full AI decision-making. Uses AI-determined confidence thresholds, variable trade frequency, with medium-high risk level. Provides maximum autonomy to the AI for risk assessment and trading decisions. Best for advanced users who want full AI autonomy.',
@@ -1674,7 +1682,7 @@ export const translations = {
 
     faqStrategyDifferences: '策略之间有什么区别？',
     faqStrategyDifferencesAnswer:
-      '策略在以下方面不同：1) 信心度阈值（adaptive：≥85，adaptive_relaxed：≥80，其他：≥75-80）；2) 交易频率（adaptive：极低，adaptive_relaxed：8-15 笔/天，其他：2-4 笔/天）；3) 风险水平（adaptive/risk_first：极低，taro_long：中高）；4) 特性（adaptive：BTC 状态检查、8 项清单、防假突破；risk_first：波动性适应、TP 阶梯；taro_long：完全 AI 自主）。所有策略都优先考虑资本保全和质量而非数量。',
+      '策略在以下方面不同：1) 信心度阈值（adaptive/risk_first/Hansen：≥85，adaptive_relaxed/adaptive_moderate/adaptive_altcoin：≥80，nof1/default：≥75）；2) 交易频率（adaptive：极低，adaptive_relaxed/adaptive_moderate/adaptive_altcoin：8-15 笔/天，其他：2-4 笔/天）；3) 风险水平（adaptive/risk_first：极低，taro_long：中高）；4) 特性（adaptive：BTC 状态检查、8 项清单、防假突破；risk_first：波动性适应、TP 阶梯；adaptive_altcoin：专注山寨币，BTC 仅参考；taro_long：完全 AI 自主）。所有策略都优先考虑资本保全和质量而非数量。',
 
     faqSafestStrategy: '哪种策略最安全？',
     faqSafestStrategyAnswer:
@@ -1694,7 +1702,7 @@ export const translations = {
 
     faqStrategyComparison: '可以用表格对比所有策略吗？',
     faqStrategyComparisonAnswer:
-      '快速对比：| 策略 | 信心度 | 频率 | 风险 | 适合 | |----------|------------|-----------|------|----------| | adaptive | ≥85 | 极低 | 极低 | 最高保护 | | adaptive_relaxed | ≥80 | 8-15 笔/天 | 低 | 更多活跃度，仍安全 | | risk_first | ≥75 | 2-4 笔/天 | 极低 | 资本保全 | | nof1 | ≥80-85 | 2-4 笔/天 | 低 | 保守质量 | | default | ≥75 | 2-4 笔/天 | 中 | 初学者 | | Hansen | 可变 | 2-4 笔/天 | 中 | 英文/Hyperliquid | | taro_long | AI 决定 | 可变 | 中高 | 高级自主 |',
+      '快速对比：| 策略 | 信心度 | 频率 | 风险 | 适合 | |----------|------------|-----------|------|----------| | adaptive | ≥85 | 极低 | 极低 | 最高保护 | | adaptive_relaxed | ≥80 | 8-15 笔/天 | 低 | 更多活跃度，仍安全 | | adaptive_moderate | ≥80 | 8-15 笔/天 | 低 | 平衡交易 | | adaptive_altcoin | ≥80 | 8-15 笔/天 | 低 | 山寨币专注 | | risk_first | ≥85 | 2-4 笔/天 | 极低 | 资本保全 | | nof1 | ≥75 | 2-4 笔/天 | 低 | 保守质量 | | default | ≥75 | 2-4 笔/天 | 中 | 初学者 | | Hansen | ≥85 | 2-4 笔/天 | 中 | 英文/Hyperliquid | | taro_long | AI 决定 | 可变 | 中高 | 高级自主 |',
 
     faqStrategyCustomization: '我可以自定义或修改策略吗？',
     faqStrategyCustomizationAnswer:
@@ -1705,7 +1713,7 @@ export const translations = {
     strategiesSubtitle: '了解所有可用的交易策略，选择适合您风险承受能力的策略',
     strategiesIntroductionTitle: '介绍',
     strategiesIntroduction:
-      'NOFX 提供 7 种不同的交易策略，每种策略针对不同的风险状况和交易风格设计。所有策略都优先考虑资本保全和质量而非数量，但它们在信心度阈值、交易频率和风险管理方法上有所不同。',
+      'NOFX 提供 9 种不同的交易策略，每种策略针对不同的风险状况和交易风格设计。所有策略都优先考虑资本保全和质量而非数量，但它们在信心度阈值、交易频率和风险管理方法上有所不同。',
     strategiesComparisonTitle: '策略对比',
     strategiesComparisonIntro: '以下是所有可用策略的快速对比：',
     strategyTableHeaderStrategy: '策略',
@@ -1729,6 +1737,8 @@ export const translations = {
     strategyBestForBeginners: '初学者',
     strategyBestForEnglishHyperliquid: '英文/Hyperliquid',
     strategyBestForAdvancedAutonomy: '高级自主',
+    strategyBestForBalancedTrading: '平衡交易',
+    strategyBestForAltcoinFocus: '山寨币专注',
     strategiesDetailsTitle: '策略详情',
     strategyDefaultTitle: '默认策略',
     strategyDefaultDescription:
@@ -1739,15 +1749,21 @@ export const translations = {
     strategyAdaptiveRelaxedTitle: '自适应宽松策略',
     strategyAdaptiveRelaxedDescription:
       '自适应策略的更活跃版本，同时保持核心风险控制。使用信心度阈值≥80（vs 85）、冷却期 6 分钟（vs 9 分钟）、2 个时间框架（vs 3 个）、4/8 清单（vs 5/8）和更短的亏损暂停。预期每天交易 8-15 次。最适合想要更多交易活跃度但仍优先考虑安全性的用户。',
+    strategyAdaptiveModerateTitle: '自适应平衡策略',
+    strategyAdaptiveModerateDescription:
+      '平衡风险控制与交易频率的策略。使用信心度阈值≥80（缺少 BTC 数据时为 85）、冷却期 6 分钟、2 个时间框架、4/7 清单，BTC 确认为建议但非强制。预期每天交易 8-15 次。最适合想要平衡交易并保持适度风险控制的用户。',
+    strategyAdaptiveAltcoinTitle: '自适应山寨币策略',
+    strategyAdaptiveAltcoinDescription:
+      '专注于山寨币交易的策略，BTC 仅作为参考。使用信心度阈值≥80、冷却期 6 分钟、2 个时间框架、4/7 清单。BTC 确认为可选且不会阻止交易。专为专注于山寨币交易且可能没有 BTC 数据的用户设计。预期每天交易 8-15 次。最适合想要更多山寨币交易机会同时保持风险控制的用户。',
     strategyRiskFirstTitle: '风险优先策略',
     strategyRiskFirstDescription:
-      '优先考虑资本保全，明确"资本保全 > 利润"原则。使用信心度阈值≥75，每天交易 2-4 次，风险水平极低。具有波动性适应仓位大小和系统性退出策略。最适合想要最大资本保护的用户。',
+      '优先考虑资本保全，明确"资本保全 > 利润"原则。使用信心度阈值≥85，每天交易 2-4 次，风险水平极低。具有波动性适应仓位大小和系统性退出策略。最适合想要最大资本保护的用户。',
     strategyNof1Title: 'NOF1 策略',
     strategyNof1Description:
-      '保守的质量导向策略。使用信心度阈值≥80-85，每天交易 2-4 次，风险水平低。强调质量而非数量。最适合偏好保守、高质量交易的用户。',
+      '保守的质量导向策略。使用信心度阈值≥75，每天交易 2-4 次，风险水平低。强调质量而非数量。最适合偏好保守、高质量交易的用户。',
     strategyHansenTitle: 'Hansen 策略',
     strategyHansenDescription:
-      '专为英语用户和 Hyperliquid 交易所设计。使用可变信心度阈值，每天交易 2-4 次，风险水平中等。针对特定交易所特性和英语提示词优化。',
+      '专为英语用户和 Hyperliquid 交易所设计。使用信心度阈值≥85，每天交易 2-4 次，风险水平中等。针对特定交易所特性和英语提示词优化。',
     strategyTaroLongTitle: 'Taro Long 策略',
     strategyTaroLongDescription:
       '具有完全 AI 决策的高级自主策略。使用 AI 决定的信心度阈值，可变交易频率，风险水平中高。为 AI 提供最大自主权进行风险评估和交易决策。最适合想要完全 AI 自主的高级用户。',

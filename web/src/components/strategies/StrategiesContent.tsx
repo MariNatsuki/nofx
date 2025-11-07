@@ -134,10 +134,52 @@ export function StrategiesContent({ language }: StrategiesContentProps) {
                   }}
                 >
                   <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    <code className="text-sm">adaptive_moderate</code>
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    ≥80
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    8-15 {t('strategyFrequencyPerDay', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyRiskLow', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyBestForBalancedTrading', language)}
+                  </td>
+                </tr>
+                <tr
+                  style={{
+                    borderBottom: '1px solid #2B3139',
+                  }}
+                >
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    <code className="text-sm">adaptive_altcoin</code>
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    ≥80
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    8-15 {t('strategyFrequencyPerDay', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyRiskLow', language)}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
+                    {t('strategyBestForAltcoinFocus', language)}
+                  </td>
+                </tr>
+                <tr
+                  style={{
+                    borderBottom: '1px solid #2B3139',
+                  }}
+                >
+                  <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
                     <code className="text-sm">risk_first</code>
                   </td>
                   <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
-                    ≥75
+                    ≥85
                   </td>
                   <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
                     2-4 {t('strategyFrequencyPerDay', language)}
@@ -158,7 +200,7 @@ export function StrategiesContent({ language }: StrategiesContentProps) {
                     <code className="text-sm">nof1</code>
                   </td>
                   <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
-                    ≥80-85
+                    ≥75
                   </td>
                   <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
                     2-4 {t('strategyFrequencyPerDay', language)}
@@ -200,7 +242,7 @@ export function StrategiesContent({ language }: StrategiesContentProps) {
                     <code className="text-sm">Hansen</code>
                   </td>
                   <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
-                    {t('strategyConfidenceVariable', language)}
+                    ≥85
                   </td>
                   <td className="px-4 py-3" style={{ color: '#B7BDC6' }}>
                     2-4 {t('strategyFrequencyPerDay', language)}
@@ -300,6 +342,48 @@ export function StrategiesContent({ language }: StrategiesContentProps) {
           >
             <p className="text-base">
               {t('strategyAdaptiveRelaxedDescription', language)}
+            </p>
+          </div>
+        </div>
+
+        {/* Adaptive Moderate Strategy */}
+        <div className="mb-8">
+          <h3
+            className="text-xl font-semibold mb-3"
+            style={{ color: '#EAECEF' }}
+          >
+            {t('strategyAdaptiveModerateTitle', language)}
+          </h3>
+          <div
+            className="prose prose-invert max-w-none"
+            style={{
+              color: '#B7BDC6',
+              lineHeight: '1.7',
+            }}
+          >
+            <p className="text-base">
+              {t('strategyAdaptiveModerateDescription', language)}
+            </p>
+          </div>
+        </div>
+
+        {/* Adaptive Altcoin Strategy */}
+        <div className="mb-8">
+          <h3
+            className="text-xl font-semibold mb-3"
+            style={{ color: '#EAECEF' }}
+          >
+            {t('strategyAdaptiveAltcoinTitle', language)}
+          </h3>
+          <div
+            className="prose prose-invert max-w-none"
+            style={{
+              color: '#B7BDC6',
+              lineHeight: '1.7',
+            }}
+          >
+            <p className="text-base">
+              {t('strategyAdaptiveAltcoinDescription', language)}
             </p>
           </div>
         </div>
