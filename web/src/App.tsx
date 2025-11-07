@@ -15,7 +15,7 @@ import HeaderBar from './components/landing/HeaderBar'
 import AILearning from './components/AILearning'
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import { t, type Language } from './i18n/translations'
+import { t, translateError, type Language } from './i18n/translations'
 import { useSystemConfig } from './hooks/useSystemConfig'
 import { AlertTriangle, Loader2, Languages } from 'lucide-react'
 import { translateText } from './lib/translate'
@@ -120,7 +120,7 @@ function App() {
   // };
 
   // 获取trader列表（仅在用户登录时）
-  const { data: traders } = useSWR<TraderInfo[]>(
+  const { data: traders, mutate: mutateTraders } = useSWR<TraderInfo[]>(
     user && token ? 'traders' : null,
     api.getTraders,
     {
@@ -520,6 +520,7 @@ function App() {
             traders={traders}
             selectedTraderId={selectedTraderId}
             onTraderSelect={setSelectedTraderId}
+            mutateTraders={mutateTraders}
           />
         )}
       </main>
@@ -586,6 +587,7 @@ function TraderDetailsPage({
   traders,
   selectedTraderId,
   onTraderSelect,
+  mutateTraders,
 }: {
   selectedTrader?: TraderInfo
   traders?: TraderInfo[]
@@ -598,7 +600,29 @@ function TraderDetailsPage({
   stats?: Statistics
   lastUpdate: string
   language: Language
+  mutateTraders?: () => Promise<TraderInfo[] | undefined>
 }) {
+  // Handle toggle trader start/stop
+  const handleToggleTrader = async (traderId: string, running: boolean) => {
+    try {
+      if (running) {
+        await api.stopTrader(traderId)
+      } else {
+        await api.startTrader(traderId)
+      }
+      if (mutateTraders) {
+        await mutateTraders()
+      }
+    } catch (error) {
+      console.error('Failed to toggle trader:', error)
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      alert(
+        translateError(errorMessage, language) || t('operationFailed', language)
+      )
+    }
+  }
+
   if (!selectedTrader) {
     return (
       <div className="space-y-6">
@@ -655,30 +679,78 @@ function TraderDetailsPage({
             {selectedTrader.trader_name}
           </h2>
 
-          {/* Trader Selector */}
-          {traders && traders.length > 0 && (
+          {/* Trader Selector and Controls */}
+          <div className="flex items-center gap-3">
+            {/* Status Indicator */}
             <div className="flex items-center gap-2">
-              <span className="text-sm" style={{ color: '#848E9C' }}>
-                {t('switchTrader', language)}:
-              </span>
-              <select
-                value={selectedTraderId}
-                onChange={(e) => onTraderSelect(e.target.value)}
-                className="rounded px-3 py-2 text-sm font-medium cursor-pointer transition-colors"
-                style={{
-                  background: '#1E2329',
-                  border: '1px solid #2B3139',
-                  color: '#EAECEF',
-                }}
+              <div
+                className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"
+                style={
+                  selectedTrader.is_running
+                    ? {
+                        background: 'rgba(14, 203, 129, 0.1)',
+                        color: '#0ECB81',
+                      }
+                    : { background: 'rgba(246, 70, 93, 0.1)', color: '#F6465D' }
+                }
               >
-                {traders.map((trader) => (
-                  <option key={trader.trader_id} value={trader.trader_id}>
-                    {trader.trader_name}
-                  </option>
-                ))}
-              </select>
+                <span>{selectedTrader.is_running ? '●' : '○'}</span>
+                {selectedTrader.is_running
+                  ? t('running', language)
+                  : t('stopped', language)}
+              </div>
+              {/* Control Button */}
+              <button
+                onClick={() =>
+                  handleToggleTrader(
+                    selectedTrader.trader_id,
+                    selectedTrader.is_running || false
+                  )
+                }
+                className="px-3 py-1.5 rounded text-xs font-semibold transition-all hover:scale-105 whitespace-nowrap"
+                style={
+                  selectedTrader.is_running
+                    ? {
+                        background: 'rgba(246, 70, 93, 0.1)',
+                        color: '#F6465D',
+                      }
+                    : {
+                        background: 'rgba(14, 203, 129, 0.1)',
+                        color: '#0ECB81',
+                      }
+                }
+              >
+                {selectedTrader.is_running
+                  ? t('stop', language)
+                  : t('start', language)}
+              </button>
             </div>
-          )}
+
+            {/* Trader Selector */}
+            {traders && traders.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm" style={{ color: '#848E9C' }}>
+                  {t('switchTrader', language)}:
+                </span>
+                <select
+                  value={selectedTraderId}
+                  onChange={(e) => onTraderSelect(e.target.value)}
+                  className="rounded px-3 py-2 text-sm font-medium cursor-pointer transition-colors"
+                  style={{
+                    background: '#1E2329',
+                    border: '1px solid #2B3139',
+                    color: '#EAECEF',
+                  }}
+                >
+                  {traders.map((trader) => (
+                    <option key={trader.trader_id} value={trader.trader_id}>
+                      {trader.trader_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
         </div>
         <div
           className="flex items-center gap-4 text-sm"
