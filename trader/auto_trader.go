@@ -98,16 +98,16 @@ type AutoTrader struct {
 	lastResetTime         time.Time
 	stopUntil             time.Time
 	isRunning             bool
-	startTime             time.Time        // 系统启动时间
-	callCount             int              // AI调用次数
-	positionFirstSeenTime map[string]int64 // 持仓首次出现时间 (symbol_side -> timestamp毫秒)
-	stopMonitorCh         chan struct{}    // 用于停止监控goroutine
-	monitorWg             sync.WaitGroup   // 用于等待监控goroutine结束
-	peakPnLCache      map[string]float64 	 // 最高收益缓存 (symbol -> 峰值盈亏百分比)
-	peakPnLCacheMutex sync.RWMutex // 缓存读写锁
-	lastBalanceSyncTime   time.Time        // 上次余额同步时间
-	database              interface{}      // 数据库引用（用于自动更新余额）
-	userID                string           // 用户ID
+	startTime             time.Time                          // 系统启动时间
+	callCount             int                                // AI调用次数
+	positionFirstSeenTime map[string]int64                   // 持仓首次出现时间 (symbol_side -> timestamp毫秒)
+	stopMonitorCh         chan struct{}                      // 用于停止监控goroutine
+	monitorWg             sync.WaitGroup                     // 用于等待监控goroutine结束
+	peakPnLCache          map[string]float64                 // 最高收益缓存 (symbol -> 峰值盈亏百分比)
+	peakPnLCacheMutex     sync.RWMutex                       // 缓存读写锁
+	lastBalanceSyncTime   time.Time                          // 上次余额同步时间
+	database              interface{}                        // 数据库引用（用于自动更新余额）
+	userID                string                             // 用户ID
 	previousPositions     map[string]logger.PositionSnapshot // 上一周期的持仓快照 (symbol_side -> PositionSnapshot)
 }
 
@@ -251,7 +251,7 @@ func (at *AutoTrader) Run() error {
 	log.Printf("💰 初始余额: %.2f USDT", at.initialBalance)
 	log.Printf("⚙️  扫描间隔: %v", at.config.ScanInterval)
 	log.Println("🤖 AI将全权决定杠杆、仓位大小、止损止盈等参数")
-	
+
 	// 显示当前使用的提示词配置
 	log.Printf("📝 系统提示词模板: %s", at.systemPromptTemplate)
 	if at.customPrompt != "" {
@@ -456,7 +456,7 @@ func (at *AutoTrader) runCycle() error {
 		})
 	}
 
-						log.Print(strings.Repeat("=", 70))
+	log.Print(strings.Repeat("=", 70))
 	for _, coin := range ctx.CandidateCoins {
 		record.CandidateCoins = append(record.CandidateCoins, coin.Symbol)
 	}
@@ -485,11 +485,11 @@ func (at *AutoTrader) runCycle() error {
 
 		// 打印系统提示词和AI思维链（即使有错误，也要输出以便调试）
 		if decision != nil {
-				log.Print("\n" + strings.Repeat("=", 70) + "\n")
-				log.Printf("📋 系统提示词 [模板: %s] (错误情况)", at.systemPromptTemplate)
-				log.Println(strings.Repeat("=", 70))
-				log.Println(decision.SystemPrompt)
-				log.Println(strings.Repeat("=", 70))
+			log.Print("\n" + strings.Repeat("=", 70) + "\n")
+			log.Printf("📋 系统提示词 [模板: %s] (错误情况)", at.systemPromptTemplate)
+			log.Println(strings.Repeat("=", 70))
+			log.Println(decision.SystemPrompt)
+			log.Println(strings.Repeat("=", 70))
 
 			if decision.CoTTrace != "" {
 				log.Print("\n" + strings.Repeat("-", 70) + "\n")
@@ -528,7 +528,7 @@ func (at *AutoTrader) runCycle() error {
 	//     }
 	// }
 	log.Println()
-				log.Print(strings.Repeat("-", 70))
+	log.Print(strings.Repeat("-", 70))
 	// 8. 检测平台关闭的交易（止损、止盈、强平等）
 	platformClosedActions := at.detectPlatformClosedTrades(record.Positions, decision.Decisions)
 	if len(platformClosedActions) > 0 {
@@ -540,9 +540,7 @@ func (at *AutoTrader) runCycle() error {
 		}
 	}
 
-	// 9. 对决策排序：确保先平仓后开仓（防止仓位叠加超限）
-				log.Print(strings.Repeat("-", 70))
-
+	log.Print(strings.Repeat("-", 70))
 	// 9. 对决策排序：确保先平仓后开仓（防止仓位叠加超限）
 	sortedDecisions := sortDecisionsByPriority(decision.Decisions)
 
@@ -1739,7 +1737,7 @@ func (at *AutoTrader) detectPlatformClosedTrades(currentPositions []logger.Posit
 				// 这是平台关闭的交易（止损、止盈、强平等）
 				// 获取当前价格作为平仓价格
 				currentPrice := prevPos.MarkPrice // 使用上一周期的标记价格作为平仓价格
-				
+
 				// 如果可能，尝试获取更准确的当前价格
 				marketData, err := market.Get(prevPos.Symbol)
 				if err == nil {
@@ -1775,7 +1773,7 @@ func (at *AutoTrader) detectPlatformClosedTrades(currentPositions []logger.Posit
 func (at *AutoTrader) updatePreviousPositions(currentPositions []logger.PositionSnapshot) {
 	// 清空并重建上一周期的持仓快照
 	at.previousPositions = make(map[string]logger.PositionSnapshot)
-	
+
 	for _, pos := range currentPositions {
 		posKey := pos.Symbol + "_" + pos.Side
 		at.previousPositions[posKey] = pos
