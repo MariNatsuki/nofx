@@ -7,6 +7,7 @@ import (
 	"log"
 	"nofx/config"
 	"nofx/trader"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -212,33 +213,42 @@ func (tm *TraderManager) addTraderFromDB(traderCfg *config.TraderRecord, aiModel
 		log.Printf("✓ 交易员 %s 启用 COIN POOL 信号源: %s", traderCfg.Name, coinPoolURL)
 	}
 
+	// 读取最大并发持仓数配置（从环境变量）
+	maxConcurrentPositions := 3 // 默认值
+	if envMaxPositions := os.Getenv("NOFX_MAX_CONCURRENT_POSITIONS"); envMaxPositions != "" {
+		if val, err := strconv.Atoi(envMaxPositions); err == nil && val > 0 {
+			maxConcurrentPositions = val
+		}
+	}
+
 	// 构建AutoTraderConfig
 	traderConfig := trader.AutoTraderConfig{
-		ID:                    traderCfg.ID,
-		Name:                  traderCfg.Name,
-		AIModel:               aiModelCfg.Provider, // 使用provider作为模型标识
-		Exchange:              exchangeCfg.ID,      // 使用exchange ID
-		BinanceAPIKey:         "",
-		BinanceSecretKey:      "",
-		HyperliquidPrivateKey: "",
-		HyperliquidTestnet:    exchangeCfg.Testnet,
-		CoinPoolAPIURL:        effectiveCoinPoolURL,
-		UseQwen:               aiModelCfg.Provider == "qwen",
-		DeepSeekKey:           "",
-		QwenKey:               "",
-		CustomAPIURL:          aiModelCfg.CustomAPIURL,    // 自定义API URL
-		CustomModelName:       aiModelCfg.CustomModelName, // 自定义模型名称
-		ScanInterval:          time.Duration(traderCfg.ScanIntervalMinutes) * time.Minute,
-		InitialBalance:        traderCfg.InitialBalance,
-		BTCETHLeverage:        traderCfg.BTCETHLeverage,
-		AltcoinLeverage:       traderCfg.AltcoinLeverage,
-		MaxDailyLoss:          maxDailyLoss,
-		MaxDrawdown:           maxDrawdown,
-		StopTradingTime:       time.Duration(stopTradingMinutes) * time.Minute,
-		IsCrossMargin:         traderCfg.IsCrossMargin,
-		DefaultCoins:          defaultCoins,
-		TradingCoins:          tradingCoins,
-		SystemPromptTemplate:  traderCfg.SystemPromptTemplate, // 系统提示词模板
+		ID:                     traderCfg.ID,
+		Name:                   traderCfg.Name,
+		AIModel:                aiModelCfg.Provider, // 使用provider作为模型标识
+		Exchange:               exchangeCfg.ID,      // 使用exchange ID
+		BinanceAPIKey:          "",
+		BinanceSecretKey:       "",
+		HyperliquidPrivateKey:  "",
+		HyperliquidTestnet:     exchangeCfg.Testnet,
+		CoinPoolAPIURL:         effectiveCoinPoolURL,
+		UseQwen:                aiModelCfg.Provider == "qwen",
+		DeepSeekKey:            "",
+		QwenKey:                "",
+		CustomAPIURL:           aiModelCfg.CustomAPIURL,    // 自定义API URL
+		CustomModelName:        aiModelCfg.CustomModelName, // 自定义模型名称
+		ScanInterval:           time.Duration(traderCfg.ScanIntervalMinutes) * time.Minute,
+		InitialBalance:         traderCfg.InitialBalance,
+		BTCETHLeverage:         traderCfg.BTCETHLeverage,
+		AltcoinLeverage:        traderCfg.AltcoinLeverage,
+		MaxConcurrentPositions: maxConcurrentPositions,
+		MaxDailyLoss:           maxDailyLoss,
+		MaxDrawdown:            maxDrawdown,
+		StopTradingTime:        time.Duration(stopTradingMinutes) * time.Minute,
+		IsCrossMargin:          traderCfg.IsCrossMargin,
+		DefaultCoins:           defaultCoins,
+		TradingCoins:           tradingCoins,
+		SystemPromptTemplate:   traderCfg.SystemPromptTemplate, // 系统提示词模板
 	}
 
 	// 根据交易所类型设置API密钥
@@ -319,32 +329,41 @@ func (tm *TraderManager) AddTraderFromDB(traderCfg *config.TraderRecord, aiModel
 		log.Printf("✓ 交易员 %s 启用 COIN POOL 信号源: %s", traderCfg.Name, coinPoolURL)
 	}
 
+	// 读取最大并发持仓数配置（从环境变量）
+	maxConcurrentPositions := 3 // 默认值
+	if envMaxPositions := os.Getenv("NOFX_MAX_CONCURRENT_POSITIONS"); envMaxPositions != "" {
+		if val, err := strconv.Atoi(envMaxPositions); err == nil && val > 0 {
+			maxConcurrentPositions = val
+		}
+	}
+
 	// 构建AutoTraderConfig
 	traderConfig := trader.AutoTraderConfig{
-		ID:                    traderCfg.ID,
-		Name:                  traderCfg.Name,
-		AIModel:               aiModelCfg.Provider, // 使用provider作为模型标识
-		Exchange:              exchangeCfg.ID,      // 使用exchange ID
-		BinanceAPIKey:         "",
-		BinanceSecretKey:      "",
-		HyperliquidPrivateKey: "",
-		HyperliquidTestnet:    exchangeCfg.Testnet,
-		CoinPoolAPIURL:        effectiveCoinPoolURL,
-		UseQwen:               aiModelCfg.Provider == "qwen",
-		DeepSeekKey:           "",
-		QwenKey:               "",
-		CustomAPIURL:          aiModelCfg.CustomAPIURL,    // 自定义API URL
-		CustomModelName:       aiModelCfg.CustomModelName, // 自定义模型名称
-		ScanInterval:          time.Duration(traderCfg.ScanIntervalMinutes) * time.Minute,
-		InitialBalance:        traderCfg.InitialBalance,
-		BTCETHLeverage:        traderCfg.BTCETHLeverage,
-		AltcoinLeverage:       traderCfg.AltcoinLeverage,
-		MaxDailyLoss:          maxDailyLoss,
-		MaxDrawdown:           maxDrawdown,
-		StopTradingTime:       time.Duration(stopTradingMinutes) * time.Minute,
-		IsCrossMargin:         traderCfg.IsCrossMargin,
-		DefaultCoins:          defaultCoins,
-		TradingCoins:          tradingCoins,
+		ID:                     traderCfg.ID,
+		Name:                   traderCfg.Name,
+		AIModel:                aiModelCfg.Provider, // 使用provider作为模型标识
+		Exchange:               exchangeCfg.ID,      // 使用exchange ID
+		BinanceAPIKey:          "",
+		BinanceSecretKey:       "",
+		HyperliquidPrivateKey:  "",
+		HyperliquidTestnet:     exchangeCfg.Testnet,
+		CoinPoolAPIURL:         effectiveCoinPoolURL,
+		UseQwen:                aiModelCfg.Provider == "qwen",
+		DeepSeekKey:            "",
+		QwenKey:                "",
+		CustomAPIURL:           aiModelCfg.CustomAPIURL,    // 自定义API URL
+		CustomModelName:        aiModelCfg.CustomModelName, // 自定义模型名称
+		ScanInterval:           time.Duration(traderCfg.ScanIntervalMinutes) * time.Minute,
+		InitialBalance:         traderCfg.InitialBalance,
+		BTCETHLeverage:         traderCfg.BTCETHLeverage,
+		AltcoinLeverage:        traderCfg.AltcoinLeverage,
+		MaxConcurrentPositions: maxConcurrentPositions,
+		MaxDailyLoss:           maxDailyLoss,
+		MaxDrawdown:            maxDrawdown,
+		StopTradingTime:        time.Duration(stopTradingMinutes) * time.Minute,
+		IsCrossMargin:          traderCfg.IsCrossMargin,
+		DefaultCoins:           defaultCoins,
+		TradingCoins:           tradingCoins,
 	}
 
 	// 根据交易所类型设置API密钥
@@ -870,13 +889,13 @@ func (tm *TraderManager) ReloadTrader(database *config.Database, userID, traderI
 		if isRunning, ok := status["is_running"].(bool); ok {
 			wasRunning = isRunning
 		}
-		
+
 		// 如果正在运行，先停止
 		if wasRunning {
 			log.Printf("⏹ 停止交易员 %s 以重新加载配置", existingTrader.GetName())
 			existingTrader.Stop()
 		}
-		
+
 		// 从map中移除
 		delete(tm.traders, traderID)
 		log.Printf("🗑️ 已从内存中移除交易员 %s", traderID)
@@ -1056,28 +1075,37 @@ func (tm *TraderManager) loadSingleTrader(traderCfg *config.TraderRecord, aiMode
 		log.Printf("✓ 交易员 %s 启用 COIN POOL 信号源: %s", traderCfg.Name, coinPoolURL)
 	}
 
+	// 读取最大并发持仓数配置（从环境变量）
+	maxConcurrentPositions := 3 // 默认值
+	if envMaxPositions := os.Getenv("NOFX_MAX_CONCURRENT_POSITIONS"); envMaxPositions != "" {
+		if val, err := strconv.Atoi(envMaxPositions); err == nil && val > 0 {
+			maxConcurrentPositions = val
+		}
+	}
+
 	// 构建AutoTraderConfig
 	traderConfig := trader.AutoTraderConfig{
-		ID:                   traderCfg.ID,
-		Name:                 traderCfg.Name,
-		AIModel:              aiModelCfg.Provider, // 使用provider作为模型标识
-		Exchange:             exchangeCfg.ID,      // 使用exchange ID
-		InitialBalance:       traderCfg.InitialBalance,
-		BTCETHLeverage:       traderCfg.BTCETHLeverage,
-		AltcoinLeverage:      traderCfg.AltcoinLeverage,
-		ScanInterval:         time.Duration(traderCfg.ScanIntervalMinutes) * time.Minute,
-		CoinPoolAPIURL:       effectiveCoinPoolURL,
-		CustomAPIURL:         aiModelCfg.CustomAPIURL,    // 自定义API URL
-		CustomModelName:      aiModelCfg.CustomModelName, // 自定义模型名称
-		UseQwen:              aiModelCfg.Provider == "qwen",
-		MaxDailyLoss:         maxDailyLoss,
-		MaxDrawdown:          maxDrawdown,
-		StopTradingTime:      time.Duration(stopTradingMinutes) * time.Minute,
-		IsCrossMargin:        traderCfg.IsCrossMargin,
-		DefaultCoins:         defaultCoins,
-		TradingCoins:         tradingCoins,
-		SystemPromptTemplate: traderCfg.SystemPromptTemplate, // 系统提示词模板
-		HyperliquidTestnet:   exchangeCfg.Testnet,            // Hyperliquid测试网
+		ID:                     traderCfg.ID,
+		Name:                   traderCfg.Name,
+		AIModel:                aiModelCfg.Provider, // 使用provider作为模型标识
+		Exchange:               exchangeCfg.ID,      // 使用exchange ID
+		InitialBalance:         traderCfg.InitialBalance,
+		BTCETHLeverage:         traderCfg.BTCETHLeverage,
+		AltcoinLeverage:        traderCfg.AltcoinLeverage,
+		MaxConcurrentPositions: maxConcurrentPositions,
+		ScanInterval:           time.Duration(traderCfg.ScanIntervalMinutes) * time.Minute,
+		CoinPoolAPIURL:         effectiveCoinPoolURL,
+		CustomAPIURL:           aiModelCfg.CustomAPIURL,    // 自定义API URL
+		CustomModelName:        aiModelCfg.CustomModelName, // 自定义模型名称
+		UseQwen:                aiModelCfg.Provider == "qwen",
+		MaxDailyLoss:           maxDailyLoss,
+		MaxDrawdown:            maxDrawdown,
+		StopTradingTime:        time.Duration(stopTradingMinutes) * time.Minute,
+		IsCrossMargin:          traderCfg.IsCrossMargin,
+		DefaultCoins:           defaultCoins,
+		TradingCoins:           tradingCoins,
+		SystemPromptTemplate:   traderCfg.SystemPromptTemplate, // 系统提示词模板
+		HyperliquidTestnet:     exchangeCfg.Testnet,            // Hyperliquid测试网
 	}
 
 	// 根据交易所类型设置API密钥

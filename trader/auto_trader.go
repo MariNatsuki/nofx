@@ -62,6 +62,9 @@ type AutoTraderConfig struct {
 	BTCETHLeverage  int // BTC和ETH的杠杆倍数
 	AltcoinLeverage int // 山寨币的杠杆倍数
 
+	// 持仓限制
+	MaxConcurrentPositions int // 最大并发持仓数量
+
 	// 风险控制（仅作为提示，AI可自主决定）
 	MaxDailyLoss    float64       // 最大日亏损百分比（提示）
 	MaxDrawdown     float64       // 最大回撤百分比（提示）
@@ -126,6 +129,9 @@ func NewAutoTrader(config AutoTraderConfig, database interface{}, userID string)
 		} else {
 			config.AIModel = "deepseek"
 		}
+	}
+	if config.MaxConcurrentPositions <= 0 {
+		config.MaxConcurrentPositions = 3 // 默认3个持仓
 	}
 
 	mcpClient := mcp.New()
@@ -719,11 +725,12 @@ func (at *AutoTrader) buildTradingContext() (*decision.Context, error) {
 
 	// 6. 构建上下文
 	ctx := &decision.Context{
-		CurrentTime:     time.Now().Format("2006-01-02 15:04:05"),
-		RuntimeMinutes:  int(time.Since(at.startTime).Minutes()),
-		CallCount:       at.callCount,
-		BTCETHLeverage:  at.config.BTCETHLeverage,  // 使用配置的杠杆倍数
-		AltcoinLeverage: at.config.AltcoinLeverage, // 使用配置的杠杆倍数
+		CurrentTime:            time.Now().Format("2006-01-02 15:04:05"),
+		RuntimeMinutes:         int(time.Since(at.startTime).Minutes()),
+		CallCount:              at.callCount,
+		BTCETHLeverage:         at.config.BTCETHLeverage,         // 使用配置的杠杆倍数
+		AltcoinLeverage:        at.config.AltcoinLeverage,        // 使用配置的杠杆倍数
+		MaxConcurrentPositions: at.config.MaxConcurrentPositions, // 使用配置的最大并发持仓数
 		Account: decision.AccountInfo{
 			TotalEquity:      totalEquity,
 			AvailableBalance: availableBalance,
