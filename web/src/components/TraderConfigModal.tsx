@@ -13,7 +13,17 @@ function getShortName(fullName: string): string {
 // Map system_prompt_template to recommendation strategy name
 function mapTemplateToStrategy(template: string): string {
   // Direct matches
-  if (['risk_first', 'adaptive', 'adaptive_relaxed', 'nof1', 'Hansen', 'taro_long_prompts', 'default'].includes(template)) {
+  if (
+    [
+      'risk_first',
+      'adaptive',
+      'adaptive_relaxed',
+      'nof1',
+      'Hansen',
+      'taro_long_prompts',
+      'default',
+    ].includes(template)
+  ) {
     return template
   }
   // Map 'aggressive' to 'adaptive_relaxed'
@@ -86,10 +96,13 @@ export function TraderConfigModal({
   const [isFetchingBalance, setIsFetchingBalance] = useState(false)
   const [balanceFetchError, setBalanceFetchError] = useState<string>('')
   const [showAutoFillDialog, setShowAutoFillDialog] = useState(false)
-  const [replaceMode, setReplaceMode] = useState<'replace' | 'append'>('replace')
+  const [replaceMode, setReplaceMode] = useState<'replace' | 'append'>(
+    'replace'
+  )
   const [includeMajor, setIncludeMajor] = useState(true)
   const [includeAltcoins, setIncludeAltcoins] = useState(true)
-  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
+  const [isLoadingRecommendations, setIsLoadingRecommendations] =
+    useState(false)
   const [autoFillError, setAutoFillError] = useState<string>('')
 
   useEffect(() => {
@@ -306,7 +319,9 @@ export function TraderConfigModal({
       setIncludeAltcoins(true)
     } catch (error: any) {
       console.error('Failed to load recommendations:', error)
-      setAutoFillError(error.message || t('failedToLoadRecommendations', language))
+      setAutoFillError(
+        error.message || t('failedToLoadRecommendations', language)
+      )
     } finally {
       setIsLoadingRecommendations(false)
     }
@@ -925,7 +940,10 @@ export function TraderConfigModal({
                 </button>
                 <button
                   onClick={handleAutoFillFromRecommendations}
-                  disabled={isLoadingRecommendations || (!includeMajor && !includeAltcoins)}
+                  disabled={
+                    isLoadingRecommendations ||
+                    (!includeMajor && !includeAltcoins)
+                  }
                   className="px-6 py-2 bg-gradient-to-r from-[#F0B90B] to-[#E1A706] text-black rounded-lg hover:from-[#E1A706] hover:to-[#D4951E] transition-colors disabled:bg-[#848E9C] disabled:cursor-not-allowed font-medium"
                 >
                   {isLoadingRecommendations

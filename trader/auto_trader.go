@@ -1704,10 +1704,24 @@ func (at *AutoTrader) detectPlatformClosedTrades(currentPositions []logger.Posit
 	for _, d := range aiDecisions {
 		if d.Action == "close_long" || d.Action == "close_short" || d.Action == "partial_close" {
 			side := ""
-			if d.Action == "close_long" || d.Action == "partial_close" {
+			if d.Action == "close_long" {
 				side = "long"
 			} else if d.Action == "close_short" {
 				side = "short"
+			} else if d.Action == "partial_close" {
+				// 对于partial_close，需要从上一周期的持仓中查找实际的持仓方向
+				// 检查是否有long或short持仓
+				longKey := d.Symbol + "_long"
+				shortKey := d.Symbol + "_short"
+				if _, hasLong := at.previousPositions[longKey]; hasLong {
+					side = "long"
+				} else if _, hasShort := at.previousPositions[shortKey]; hasShort {
+					side = "short"
+				}
+				// 如果找不到持仓，记录警告但继续处理（可能持仓已在当前周期关闭）
+				if side == "" {
+					log.Printf("⚠️ 警告: partial_close 操作无法确定持仓方向 (symbol: %s)，可能持仓已不存在", d.Symbol)
+				}
 			}
 			if side != "" {
 				posKey := d.Symbol + "_" + side

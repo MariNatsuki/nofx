@@ -148,37 +148,6 @@ func (d *Database) createTables() error {
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 
-		// 推荐表
-		`CREATE TABLE IF NOT EXISTS recommendations (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			symbol TEXT NOT NULL,
-			coin_category TEXT NOT NULL,
-			score REAL NOT NULL,
-			confidence INTEGER NOT NULL,
-			direction TEXT NOT NULL,
-			strategies TEXT NOT NULL,
-			reasoning TEXT NOT NULL,
-			price_at_recommendation REAL NOT NULL,
-			leverage_suggested INTEGER,
-			technical_snapshot TEXT,
-			generation_id TEXT NOT NULL,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
-
-		// 推荐结果表
-		`CREATE TABLE IF NOT EXISTS recommendation_outcomes (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			recommendation_id INTEGER NOT NULL,
-			outcome TEXT NOT NULL,
-			price_change_1h REAL,
-			price_change_4h REAL,
-			price_change_24h REAL,
-			max_gain REAL,
-			max_loss REAL,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			FOREIGN KEY (recommendation_id) REFERENCES recommendations(id)
-		)`,
-
 		// 触发器：自动更新 updated_at
 		`CREATE TRIGGER IF NOT EXISTS update_users_updated_at
 			AFTER UPDATE ON users
@@ -223,36 +192,25 @@ func (d *Database) createTables() error {
 		}
 	}
 
-	// Migration: Add generation_id column to existing recommendations table if it doesn't exist
-	// This must run BEFORE creating indexes on this column
-	// SQLite doesn't support IF NOT EXISTS for ALTER TABLE ADD COLUMN, so we check first
-	var tableExists int
-	checkTableQuery := `SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='recommendations'`
-	if err := d.db.QueryRow(checkTableQuery).Scan(&tableExists); err == nil && tableExists > 0 {
-		// Table exists, check if column exists
-		var columnExists int
-		checkColumnQuery := `SELECT COUNT(*) FROM pragma_table_info('recommendations') WHERE name='generation_id'`
-		if err := d.db.QueryRow(checkColumnQuery).Scan(&columnExists); err == nil && columnExists == 0 {
-			if _, err := d.db.Exec(`ALTER TABLE recommendations ADD COLUMN generation_id TEXT NOT NULL DEFAULT ''`); err != nil {
-				// If column already exists, ignore the error
-				log.Printf("Note: Could not add generation_id column (may already exist): %v", err)
-			} else {
-				log.Printf("✓ Added generation_id column to existing recommendations table")
-			}
+	// Migration: Drop recommendations tables if they exist (moved to JSON storage)
+	// Drop recommendation_outcomes first due to foreign key constraint
+	var outcomesTableExists int
+	checkOutcomesQuery := `SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='recommendation_outcomes'`
+	if err := d.db.QueryRow(checkOutcomesQuery).Scan(&outcomesTableExists); err == nil && outcomesTableExists > 0 {
+		if _, err := d.db.Exec(`DROP TABLE IF EXISTS recommendation_outcomes`); err != nil {
+			log.Printf("Note: Could not drop recommendation_outcomes table: %v", err)
+		} else {
+			log.Printf("✓ Dropped recommendation_outcomes table (moved to JSON storage)")
 		}
 	}
 
-	// Create indexes for recommendations tables
-	indexQueries := []string{
-		`CREATE INDEX IF NOT EXISTS idx_recommendations_created_at ON recommendations(created_at)`,
-		`CREATE INDEX IF NOT EXISTS idx_recommendations_symbol ON recommendations(symbol)`,
-		`CREATE INDEX IF NOT EXISTS idx_recommendations_category ON recommendations(coin_category)`,
-		`CREATE INDEX IF NOT EXISTS idx_recommendations_generation_id ON recommendations(generation_id)`,
-	}
-
-	for _, query := range indexQueries {
-		if _, err := d.db.Exec(query); err != nil {
-			return fmt.Errorf("创建推荐表索引失败 [%s]: %w", query, err)
+	var recommendationsTableExists int
+	checkRecommendationsQuery := `SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='recommendations'`
+	if err := d.db.QueryRow(checkRecommendationsQuery).Scan(&recommendationsTableExists); err == nil && recommendationsTableExists > 0 {
+		if _, err := d.db.Exec(`DROP TABLE IF EXISTS recommendations`); err != nil {
+			log.Printf("Note: Could not drop recommendations table: %v", err)
+		} else {
+			log.Printf("✓ Dropped recommendations table (moved to JSON storage)")
 		}
 	}
 

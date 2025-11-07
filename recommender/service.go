@@ -1,17 +1,15 @@
 package recommender
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
-	"nofx/config"
 	"nofx/market"
 	"time"
 )
 
 // RecommendationService manages background recommendation generation
 type RecommendationService struct {
-	db              *config.Database
+	dataPath        string
+	lockPath        string
 	strategies      []string
 	btcETHLeverage  int
 	altcoinLeverage int
@@ -20,9 +18,10 @@ type RecommendationService struct {
 }
 
 // NewRecommendationService creates a new recommendation service
-func NewRecommendationService(db *config.Database, strategies []string, btcETHLeverage, altcoinLeverage int, updateInterval time.Duration) *RecommendationService {
+func NewRecommendationService(dataPath, lockPath string, strategies []string, btcETHLeverage, altcoinLeverage int, updateInterval time.Duration) *RecommendationService {
 	return &RecommendationService{
-		db:              db,
+		dataPath:        dataPath,
+		lockPath:        lockPath,
 		strategies:      strategies,
 		btcETHLeverage:  btcETHLeverage,
 		altcoinLeverage: altcoinLeverage,
@@ -57,95 +56,102 @@ func (s *RecommendationService) Stop() {
 
 // generateAndSave generates and saves recommendations
 func (s *RecommendationService) generateAndSave() {
+	// Try to acquire lock
+	lock, err := AcquireLockFile(s.lockPath)
+	if err != nil {
+		log.Printf("Failed to acquire lock for recommendation generation: %v", err)
+		return
+	}
+	defer lock.Release()
+
 	// Generate a unique generation_id for this run
 	generationID := time.Now().Format(time.RFC3339Nano)
-	
+
 	response, err := GenerateRecommendations(s.strategies, 10, s.btcETHLeverage, s.altcoinLeverage)
 	if err != nil {
 		log.Printf("Failed to generate recommendations: %v", err)
 		return
 	}
 
-	// Save recommendations from each strategy
-	for strategyName, strategyRecs := range response.Strategies {
-		// Save major coins for this strategy
+	// Load existing recommendations
+	data, err := LoadRecommendations(s.dataPath)
+	if err != nil {
+		log.Printf("Failed to load existing recommendations: %v", err)
+		return
+	}
+
+	// Prune old recommendations (keep last 7 days)
+	PruneOldRecommendations(data, 7*24*time.Hour)
+
+	// Convert and add new recommendations
+	for _, strategyRecs := range response.Strategies {
+		// Add major coins for this strategy
 		for _, rec := range strategyRecs.MajorCoins {
-			if err := s.saveRecommendation(&rec, generationID); err != nil {
-				log.Printf("ERROR: Failed to save major coin recommendation for %s [%s]: %v", rec.Symbol, strategyName, err)
-			}
+			storedRec := ConvertRecommendationToStored(&rec, generationID)
+			data.Recommendations = append(data.Recommendations, storedRec)
 		}
 
-		// Save altcoins for this strategy
+		// Add altcoins for this strategy
 		for _, rec := range strategyRecs.Altcoins {
-			if err := s.saveRecommendation(&rec, generationID); err != nil {
-				log.Printf("ERROR: Failed to save altcoin recommendation for %s [%s]: %v", rec.Symbol, strategyName, err)
-			}
+			storedRec := ConvertRecommendationToStored(&rec, generationID)
+			data.Recommendations = append(data.Recommendations, storedRec)
 		}
 	}
-}
 
-// saveRecommendation saves a recommendation to the database
-func (s *RecommendationService) saveRecommendation(rec *Recommendation, generationID string) error {
-	// Convert single strategy to array for database storage (backward compatibility)
-	strategiesJSON, err := json.Marshal([]string{rec.Strategy})
-	if err != nil {
-		return fmt.Errorf("failed to marshal strategy for %s: %w", rec.Symbol, err)
+	// Save to JSON file
+	if err := SaveRecommendations(s.dataPath, data); err != nil {
+		log.Printf("ERROR: Failed to save recommendations: %v", err)
+	} else {
+		log.Printf("✓ Saved %d recommendations with generation_id: %s", len(data.Recommendations), generationID)
 	}
-	var technicalJSON []byte
-	technicalJSON, err = json.Marshal(rec.TechnicalData)
-	if err != nil {
-		return fmt.Errorf("failed to marshal technical data for %s: %w", rec.Symbol, err)
-	}
-
-	_, err = s.db.Exec(`
-		INSERT INTO recommendations 
-		(symbol, coin_category, score, confidence, direction, strategies, reasoning, 
-		 price_at_recommendation, leverage_suggested, technical_snapshot, generation_id, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, rec.Symbol, rec.Category, rec.Score, rec.Confidence, rec.Direction,
-		string(strategiesJSON), rec.Reasoning, rec.CurrentPrice, rec.SuggestedLeverage,
-		string(technicalJSON), generationID, rec.CreatedAt)
-
-	return err
 }
 
 // updateOutcomes updates outcomes for pending recommendations
 func (s *RecommendationService) updateOutcomes() {
-	// Get all recommendations from last 24 hours, including existing outcomes
-	rows, err := s.db.Query(`
-		SELECT r.id, r.symbol, r.direction, r.price_at_recommendation, r.created_at,
-		       ro.max_gain, ro.max_loss
-		FROM recommendations r
-		LEFT JOIN recommendation_outcomes ro ON r.id = ro.recommendation_id
-		WHERE r.created_at > datetime('now', '-24 hours')
-	`)
+	// Try to acquire lock
+	lock, err := AcquireLockFile(s.lockPath)
 	if err != nil {
+		log.Printf("Failed to acquire lock for outcome update: %v", err)
 		return
 	}
-	defer rows.Close()
+	defer lock.Release()
 
-	for rows.Next() {
-		var recID int
-		var symbol, direction string
-		var priceAtRec float64
-		var createdAt time.Time
-		var existingMaxGain, existingMaxLoss *float64
+	// Load existing recommendations
+	data, err := LoadRecommendations(s.dataPath)
+	if err != nil {
+		log.Printf("Failed to load recommendations for outcome update: %v", err)
+		return
+	}
 
-		rows.Scan(&recID, &symbol, &direction, &priceAtRec, &createdAt, &existingMaxGain, &existingMaxLoss)
+	// Create a map of existing outcomes by recommendation ID for quick lookup
+	outcomeMap := make(map[string]*StoredOutcome)
+	for i := range data.Outcomes {
+		outcomeMap[data.Outcomes[i].RecommendationID] = &data.Outcomes[i]
+	}
+
+	// Process recommendations from last 24 hours
+	cutoff := time.Now().Add(-24 * time.Hour)
+	updated := false
+
+	for i := range data.Recommendations {
+		rec := &data.Recommendations[i]
+		if rec.CreatedAt.Before(cutoff) {
+			continue
+		}
 
 		// Get current price
-		marketData, err := market.Get(symbol)
+		marketData, err := market.Get(rec.Symbol)
 		if err != nil {
 			continue
 		}
 
-		priceChange := ((marketData.CurrentPrice - priceAtRec) / priceAtRec) * 100
-		if direction == "short" {
+		priceChange := ((marketData.CurrentPrice - rec.CurrentPrice) / rec.CurrentPrice) * 100
+		if rec.Direction == "short" {
 			priceChange = -priceChange
 		}
 
 		outcome := "pending"
-		if time.Since(createdAt) >= 1*time.Hour {
+		if time.Since(rec.CreatedAt) >= 1*time.Hour {
 			if priceChange > 2.0 {
 				outcome = "profitable"
 			} else if priceChange < -2.0 {
@@ -155,23 +161,46 @@ func (s *RecommendationService) updateOutcomes() {
 			}
 		}
 
-		// Calculate max_gain: update if current priceChange > existing max_gain (or initialize if null)
-		maxGain := priceChange
-		if existingMaxGain != nil && *existingMaxGain > priceChange {
-			maxGain = *existingMaxGain
-		}
+		// Get or create outcome
+		existingOutcome, exists := outcomeMap[rec.ID]
+		if !exists {
+			// Create new outcome
+			newOutcome := StoredOutcome{
+				RecommendationID: rec.ID,
+				Outcome:          outcome,
+				PriceChange1h:     priceChange,
+				MaxGain:           priceChange,
+				MaxLoss:           priceChange,
+				UpdatedAt:         time.Now(),
+			}
+			data.Outcomes = append(data.Outcomes, newOutcome)
+			outcomeMap[rec.ID] = &data.Outcomes[len(data.Outcomes)-1]
+			updated = true
+		} else {
+			// Update existing outcome
+			existingOutcome.Outcome = outcome
+			existingOutcome.PriceChange1h = priceChange
 
-		// Calculate max_loss: update if current priceChange < existing max_loss (or initialize if null)
-		maxLoss := priceChange
-		if existingMaxLoss != nil && *existingMaxLoss < priceChange {
-			maxLoss = *existingMaxLoss
-		}
+			// Calculate max_gain: update if current priceChange > existing max_gain
+			if priceChange > existingOutcome.MaxGain {
+				existingOutcome.MaxGain = priceChange
+			}
 
-		s.db.Exec(`
-			INSERT OR REPLACE INTO recommendation_outcomes 
-			(recommendation_id, outcome, price_change_1h, max_gain, max_loss, updated_at)
-			VALUES (?, ?, ?, ?, ?, datetime('now'))
-		`, recID, outcome, priceChange, maxGain, maxLoss)
+			// Calculate max_loss: update if current priceChange < existing max_loss
+			if priceChange < existingOutcome.MaxLoss {
+				existingOutcome.MaxLoss = priceChange
+			}
+
+			existingOutcome.UpdatedAt = time.Now()
+			updated = true
+		}
+	}
+
+	// Save if we made any updates
+	if updated {
+		if err := SaveRecommendations(s.dataPath, data); err != nil {
+			log.Printf("Failed to save updated outcomes: %v", err)
+		}
 	}
 }
 

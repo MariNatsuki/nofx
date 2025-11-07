@@ -23,16 +23,25 @@ import (
 	"github.com/google/uuid"
 )
 
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 // Server HTTP API服务器
 type Server struct {
-	router        *gin.Engine
-	traderManager *manager.TraderManager
-	database      *config.Database
-	port          int
+	router               *gin.Engine
+	traderManager        *manager.TraderManager
+	database             *config.Database
+	port                 int
+	recommendationsDataPath string
 }
 
 // NewServer 创建API服务器
-func NewServer(traderManager *manager.TraderManager, database *config.Database, port int) *Server {
+func NewServer(traderManager *manager.TraderManager, database *config.Database, port int, recommendationsDataPath string) *Server {
 	// 设置为Release模式（减少日志输出）
 	gin.SetMode(gin.ReleaseMode)
 
@@ -42,10 +51,11 @@ func NewServer(traderManager *manager.TraderManager, database *config.Database, 
 	router.Use(corsMiddleware())
 
 	s := &Server{
-		router:        router,
-		traderManager: traderManager,
-		database:      database,
-		port:          port,
+		router:               router,
+		traderManager:        traderManager,
+		database:             database,
+		port:                 port,
+		recommendationsDataPath: recommendationsDataPath,
 	}
 
 	// 设置路由
@@ -1421,10 +1431,14 @@ func (s *Server) handleEquityHistory(c *gin.Context) {
 			if err == nil && len(userTraders) > 0 {
 				traderID = userTraders[0].ID
 			} else {
-				// 如果数据库查询失败，尝试从内存中获取
-				ids := s.traderManager.GetTraderIDs()
-				if len(ids) > 0 {
-					traderID = ids[0]
+				// 如果数据库查询失败，尝试从内存中获取，但必须过滤为仅属于该用户的trader
+				// 安全修复：使用GetTraderIDsForUser而不是GetTraderIDs，确保只返回该用户的trader
+				userTraderIDs := s.traderManager.GetTraderIDsForUser(userID)
+				if len(userTraderIDs) > 0 {
+					traderID = userTraderIDs[0]
+				} else {
+					// 如果仍然没有找到属于该用户的trader，记录错误但不返回其他用户的trader
+					log.Printf("⚠️ 无法为用户 %s 找到任何trader（数据库查询失败且内存中无该用户的trader）", userID)
 				}
 			}
 		}
@@ -1433,6 +1447,56 @@ func (s *Server) handleEquityHistory(c *gin.Context) {
 		if traderID == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "trader_id参数不能为空"})
 			return
+		}
+	}
+
+	// 验证trader是否属于认证用户（如果已认证且trader_id是显式提供的）
+	// 注意：如果trader_id是从用户数据中获取的，则已经验证过
+	if traderID != "" {
+		userID := c.GetString("user_id")
+		if userID == "" {
+			// 尝试从Authorization头中提取（用于公开路由的向后兼容）
+			authHeader := c.GetHeader("Authorization")
+			if authHeader != "" {
+				tokenParts := strings.Split(authHeader, " ")
+				if len(tokenParts) == 2 && tokenParts[0] == "Bearer" {
+					tokenString := tokenParts[1]
+					if !auth.IsTokenBlacklisted(tokenString) {
+						claims, err := auth.ValidateJWT(tokenString)
+						if err == nil {
+							userID = claims.UserID
+						}
+					}
+				}
+			}
+		}
+		
+		// 如果用户已认证，验证trader属于该用户
+		if userID != "" {
+			userTraderIDs := s.traderManager.GetTraderIDsForUser(userID)
+			traderBelongsToUser := false
+			for _, id := range userTraderIDs {
+				if id == traderID {
+					traderBelongsToUser = true
+					break
+				}
+			}
+			if !traderBelongsToUser {
+				// 也检查数据库中的trader记录
+				userTraders, err := s.database.GetTraders(userID)
+				if err == nil {
+					for _, t := range userTraders {
+						if t.ID == traderID {
+							traderBelongsToUser = true
+							break
+						}
+					}
+				}
+			}
+			if !traderBelongsToUser {
+				c.JSON(http.StatusForbidden, gin.H{"error": "无权访问该交易员的 equity history"})
+				return
+			}
 		}
 	}
 
@@ -2200,7 +2264,7 @@ func (s *Server) getEquityHistoryForTraders(traderIDs []string) map[string]inter
 	return result
 }
 
-// handleGetRecommendations 获取当前推荐（从数据库读取）
+// handleGetRecommendations 获取当前推荐（从JSON文件读取）
 func (s *Server) handleGetRecommendations(c *gin.Context) {
 	// Get strategy from query param (accept single strategy, or default to first if multiple provided)
 	strategiesParam := c.DefaultQuery("strategy", "risk_first")
@@ -2213,31 +2277,24 @@ func (s *Server) handleGetRecommendations(c *gin.Context) {
 	
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	
-	// Query latest recommendations from database for the specified strategy
-	// Filter by the most recent generation_id to get only recommendations from the same run
-	// The strategies field is stored as JSON array, so we need to check if it contains the strategy
-	query := `
-		SELECT symbol, coin_category, score, confidence, direction, strategies, reasoning,
-		       price_at_recommendation, leverage_suggested, technical_snapshot, created_at
-		FROM recommendations
-		WHERE strategies LIKE ?
-		  AND generation_id = (
-		    SELECT MAX(generation_id)
-		    FROM recommendations
-		    WHERE strategies LIKE ?
-		  )
-		ORDER BY created_at DESC
-		LIMIT ?
-	`
-	
-	// Search for strategy in JSON array format: ["strategy_name"] or ["strategy_name", ...]
-	strategyPattern := "%\"" + strategy + "\"%"
-	rows, err := s.database.Query(query, strategyPattern, strategyPattern, limit*2) // Get more to filter properly
+	// Load recommendations from JSON file
+	data, err := recommender.LoadRecommendations(s.recommendationsDataPath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to query recommendations: %v", err)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to load recommendations: %v", err)})
 		return
 	}
-	defer rows.Close()
+	
+	// Get latest generation_id
+	latestGenID := recommender.GetLatestGenerationID(data)
+	if latestGenID == "" {
+		// No recommendations found
+		c.JSON(http.StatusOK, recommender.RecommendationResponse{
+			Strategies: make(map[string]recommender.StrategyRecommendations),
+			UpdatedAt:  time.Now(),
+			BTCStatus:  recommender.AnalyzeBTCDirection(),
+		})
+		return
+	}
 	
 	// Group recommendations by strategy and category
 	strategyRecs := make(map[string]recommender.StrategyRecommendations)
@@ -2250,53 +2307,31 @@ func (s *Server) handleGetRecommendations(c *gin.Context) {
 	// Track seen symbols to deduplicate (keep only latest per symbol)
 	seenSymbols := make(map[string]bool)
 	
-	for rows.Next() {
-		var symbol, coinCategory, direction, strategiesJSON, reasoning, technicalSnapshot string
-		var score float64
-		var confidence, leverageSuggested int
-		var priceAtRec float64
-		var createdAt time.Time
-		
-		err := rows.Scan(&symbol, &coinCategory, &score, &confidence, &direction, &strategiesJSON,
-			&reasoning, &priceAtRec, &leverageSuggested, &technicalSnapshot, &createdAt)
-		if err != nil {
-			continue
-		}
-		
-		// Skip if we've already seen this symbol (deduplication - keep only latest)
-		if seenSymbols[symbol] {
-			continue
-		}
-		
-		// Parse strategies JSON to verify it matches
-		var strategiesList []string
-		if err := json.Unmarshal([]byte(strategiesJSON), &strategiesList); err != nil {
+	// Filter recommendations by strategy and latest generation_id
+	for _, storedRec := range data.Recommendations {
+		// Only include recommendations from the latest generation
+		if storedRec.GenerationID != latestGenID {
 			continue
 		}
 		
 		// Check if this recommendation belongs to the requested strategy
-		found := false
-		for _, s := range strategiesList {
-			if s == strategy {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if storedRec.Strategy != strategy {
 			continue
 		}
 		
-		// Parse technical snapshot to get BTC status
-		var technicalData recommender.TechnicalSnapshot
-		if err := json.Unmarshal([]byte(technicalSnapshot), &technicalData); err == nil {
-			if btcStatus == "" && technicalData.BTCDirection != "" {
-				btcStatus = technicalData.BTCDirection
-			}
+		// Skip if we've already seen this symbol (deduplication - keep only latest)
+		if seenSymbols[storedRec.Symbol] {
+			continue
+		}
+		
+		// Get BTC status from technical data
+		if btcStatus == "" && storedRec.TechnicalData.BTCDirection != "" {
+			btcStatus = storedRec.TechnicalData.BTCDirection
 		}
 		
 		// Track latest created_at
-		if createdAt.After(maxCreatedAt) {
-			maxCreatedAt = createdAt
+		if storedRec.CreatedAt.After(maxCreatedAt) {
+			maxCreatedAt = storedRec.CreatedAt
 		}
 		
 		// Initialize strategy map entry if needed
@@ -2307,37 +2342,38 @@ func (s *Server) handleGetRecommendations(c *gin.Context) {
 			}
 		}
 		
-		// Create recommendation object
+		// Convert StoredRecommendation to Recommendation
 		rec := recommender.Recommendation{
-			Symbol:            symbol,
-			Category:          recommender.CoinCategory(coinCategory),
-			Score:             score,
-			Confidence:        confidence,
-			Direction:         direction,
-			Strategy:          strategy,
-			Reasoning:         reasoning,
-			CurrentPrice:      priceAtRec,
-			SuggestedLeverage: leverageSuggested,
-			TechnicalData:     technicalData,
-			CreatedAt:         createdAt,
+			Symbol:            storedRec.Symbol,
+			Category:          storedRec.Category,
+			Score:             storedRec.Score,
+			Confidence:        storedRec.Confidence,
+			Direction:         storedRec.Direction,
+			Strategy:          storedRec.Strategy,
+			Reasoning:         storedRec.Reasoning,
+			CurrentPrice:      storedRec.CurrentPrice,
+			SuggestedLeverage: storedRec.SuggestedLeverage,
+			TechnicalData:     storedRec.TechnicalData,
+			CreatedAt:         storedRec.CreatedAt,
 		}
 		
 		// Add to appropriate category with limit
-		// Retrieve struct from map, modify it, and put it back
+		// Note: Major coins are limited to min(5, limit) to match the recommendation engine
+		majorLimit := min(5, limit)
 		strategyRec := strategyRecs[strategy]
-		if coinCategory == "major" && majorCount < limit {
+		if storedRec.Category == recommender.CategoryMajor && majorCount < majorLimit {
 			strategyRec.MajorCoins = append(strategyRec.MajorCoins, rec)
 			majorCount++
-			seenSymbols[symbol] = true
-		} else if coinCategory == "altcoin" && altcoinCount < limit {
+			seenSymbols[storedRec.Symbol] = true
+		} else if storedRec.Category == recommender.CategoryAltcoin && altcoinCount < limit {
 			strategyRec.Altcoins = append(strategyRec.Altcoins, rec)
 			altcoinCount++
-			seenSymbols[symbol] = true
+			seenSymbols[storedRec.Symbol] = true
 		}
 		strategyRecs[strategy] = strategyRec
 		
 		// Stop if we have enough recommendations
-		if majorCount >= limit && altcoinCount >= limit {
+		if majorCount >= majorLimit && altcoinCount >= limit {
 			break
 		}
 	}
@@ -2377,69 +2413,67 @@ func (s *Server) handleGetRecommendationHistory(c *gin.Context) {
 	symbol := c.Query("symbol")
 	category := c.Query("category")
 	
-	query := `SELECT id, symbol, coin_category, score, confidence, direction, strategies, 
-	          reasoning, price_at_recommendation, leverage_suggested, technical_snapshot, created_at
-	          FROM recommendations WHERE 1=1`
-	args := []interface{}{}
-	
-	if since != "" {
-		query += " AND created_at >= ?"
-		args = append(args, since)
-	}
-	if until != "" {
-		query += " AND created_at <= ?"
-		args = append(args, until)
-	}
-	if symbol != "" {
-		query += " AND symbol = ?"
-		args = append(args, symbol)
-	}
-	if category != "" {
-		query += " AND coin_category = ?"
-		args = append(args, category)
-	}
-	
-	query += " ORDER BY created_at DESC LIMIT 100"
-	
-	rows, err := s.database.Query(query, args...)
+	// Load recommendations from JSON file
+	data, err := recommender.LoadRecommendations(s.recommendationsDataPath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to load recommendations: %v", err)})
 		return
 	}
-	defer rows.Close()
+	
+	// Parse time filters
+	var sinceTime, untilTime time.Time
+	if since != "" {
+		if t, err := time.Parse(time.RFC3339, since); err == nil {
+			sinceTime = t
+		}
+	}
+	if until != "" {
+		if t, err := time.Parse(time.RFC3339, until); err == nil {
+			untilTime = t
+		}
+	}
 	
 	recommendations := []map[string]interface{}{}
-	for rows.Next() {
-		var id int
-		var symbol, coinCategory, direction, strategies, reasoning, technicalSnapshot string
-		var score float64
-		var confidence, leverageSuggested int
-		var priceAtRec float64
-		var createdAt time.Time
-		
-		err := rows.Scan(&id, &symbol, &coinCategory, &score, &confidence, &direction, &strategies,
-			&reasoning, &priceAtRec, &leverageSuggested, &technicalSnapshot, &createdAt)
-		if err != nil {
+	count := 0
+	
+	// Filter and convert recommendations
+	for _, storedRec := range data.Recommendations {
+		// Apply filters
+		if !sinceTime.IsZero() && storedRec.CreatedAt.Before(sinceTime) {
+			continue
+		}
+		if !untilTime.IsZero() && storedRec.CreatedAt.After(untilTime) {
+			continue
+		}
+		if symbol != "" && storedRec.Symbol != symbol {
+			continue
+		}
+		if category != "" && string(storedRec.Category) != category {
 			continue
 		}
 		
-		var strategiesList []string
-		json.Unmarshal([]byte(strategies), &strategiesList)
+		// Convert technical data to JSON string for compatibility
+		technicalJSON, _ := json.Marshal(storedRec.TechnicalData)
 		
 		recommendations = append(recommendations, map[string]interface{}{
-			"id":                   id,
-			"symbol":               symbol,
-			"coin_category":        coinCategory,
-			"score":                score,
-			"confidence":           confidence,
-			"direction":            direction,
-			"strategies":           strategiesList,
-			"reasoning":            reasoning,
-			"price_at_recommendation": priceAtRec,
-			"leverage_suggested":   leverageSuggested,
-			"technical_snapshot":   technicalSnapshot,
-			"created_at":           createdAt,
+			"id":                     storedRec.ID,
+			"symbol":                 storedRec.Symbol,
+			"coin_category":          string(storedRec.Category),
+			"score":                  storedRec.Score,
+			"confidence":             storedRec.Confidence,
+			"direction":              storedRec.Direction,
+			"strategies":             []string{storedRec.Strategy}, // Convert to array for compatibility
+			"reasoning":              storedRec.Reasoning,
+			"price_at_recommendation": storedRec.CurrentPrice,
+			"leverage_suggested":     storedRec.SuggestedLeverage,
+			"technical_snapshot":     string(technicalJSON),
+			"created_at":             storedRec.CreatedAt,
 		})
+		
+		count++
+		if count >= 100 {
+			break
+		}
 	}
 	
 	c.JSON(http.StatusOK, recommendations)
@@ -2447,47 +2481,76 @@ func (s *Server) handleGetRecommendationHistory(c *gin.Context) {
 
 // handleGetRecommendationPerformance 获取推荐表现统计
 func (s *Server) handleGetRecommendationPerformance(c *gin.Context) {
-	rows, err := s.database.Query(`
-		SELECT 
-			r.coin_category,
-			r.strategies,
-			COUNT(*) as total,
-			SUM(CASE WHEN ro.outcome = 'profitable' THEN 1 ELSE 0 END) as profitable,
-			AVG(ro.price_change_1h) as avg_return
-		FROM recommendations r
-		JOIN recommendation_outcomes ro ON r.id = ro.recommendation_id
-		WHERE r.created_at > datetime('now', '-7 days')
-		GROUP BY r.coin_category, r.strategies
-	`)
+	// Load recommendations from JSON file
+	data, err := recommender.LoadRecommendations(s.recommendationsDataPath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to load recommendations: %v", err)})
 		return
 	}
-	defer rows.Close()
 	
-	performance := map[string]map[string]interface{}{}
-	for rows.Next() {
-		var category, strategies string
-		var total, profitable int
-		var avgReturn float64
+	// Create a map of outcomes by recommendation ID
+	outcomeMap := make(map[string]*recommender.StoredOutcome)
+	for i := range data.Outcomes {
+		outcomeMap[data.Outcomes[i].RecommendationID] = &data.Outcomes[i]
+	}
+	
+	// Calculate performance metrics for last 7 days
+	cutoff := time.Now().Add(-7 * 24 * time.Hour)
+	
+	// Group by category and strategy
+	performanceMap := make(map[string]map[string]interface{})
+	
+	for _, rec := range data.Recommendations {
+		if rec.CreatedAt.Before(cutoff) {
+			continue
+		}
 		
-		rows.Scan(&category, &strategies, &total, &profitable, &avgReturn)
+		outcome, exists := outcomeMap[rec.ID]
+		if !exists {
+			continue
+		}
 		
-		key := category + "_" + strategies
+		key := string(rec.Category) + "_" + rec.Strategy
+		if _, ok := performanceMap[key]; !ok {
+			performanceMap[key] = map[string]interface{}{
+				"category":     string(rec.Category),
+				"strategies":   rec.Strategy,
+				"total":        0,
+				"profitable":   0,
+				"total_return": 0.0,
+			}
+		}
+		
+		stats := performanceMap[key]
+		stats["total"] = stats["total"].(int) + 1
+		if outcome.Outcome == "profitable" {
+			stats["profitable"] = stats["profitable"].(int) + 1
+		}
+		stats["total_return"] = stats["total_return"].(float64) + outcome.PriceChange1h
+		performanceMap[key] = stats
+	}
+	
+	// Calculate success rate and average return
+	performance := make(map[string]map[string]interface{})
+	for key, stats := range performanceMap {
+		total := stats["total"].(int)
+		profitable := stats["profitable"].(int)
+		totalReturn := stats["total_return"].(float64)
+		
 		performance[key] = map[string]interface{}{
-			"category":    category,
-			"strategies":   strategies,
-			"total":        total,
-			"profitable":   profitable,
+			"category":    stats["category"],
+			"strategies":  stats["strategies"],
+			"total":       total,
+			"profitable":  profitable,
 			"success_rate": float64(profitable) / float64(total),
-			"avg_return":   avgReturn,
+			"avg_return":  totalReturn / float64(total),
 		}
 	}
 	
 	c.JSON(http.StatusOK, performance)
 }
 
-// handleRefreshRecommendations 刷新推荐（从数据库读取）
+// handleRefreshRecommendations 刷新推荐（从JSON文件读取）
 func (s *Server) handleRefreshRecommendations(c *gin.Context) {
 	// Get strategies from body or use default
 	var body struct {
@@ -2507,37 +2570,34 @@ func (s *Server) handleRefreshRecommendations(c *gin.Context) {
 		body.Limit = 10
 	}
 	
-	// Query latest recommendations from database for all requested strategies
+	// Load recommendations from JSON file
+	data, err := recommender.LoadRecommendations(s.recommendationsDataPath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to load recommendations: %v", err)})
+		return
+	}
+	
+	// Get latest generation_id
+	latestGenID := recommender.GetLatestGenerationID(data)
+	if latestGenID == "" {
+		// No recommendations found
+		c.JSON(http.StatusOK, recommender.RecommendationResponse{
+			Strategies: make(map[string]recommender.StrategyRecommendations),
+			UpdatedAt:  time.Now(),
+			BTCStatus:  recommender.AnalyzeBTCDirection(),
+		})
+		return
+	}
+	
+	// Group recommendations by strategy and category
 	strategyRecs := make(map[string]recommender.StrategyRecommendations)
 	var maxCreatedAt time.Time
 	var btcStatus string
 	
+	// Process each requested strategy
 	for _, strategy := range body.Strategies {
-		// Filter by the most recent generation_id to get only recommendations from the same run
-		query := `
-			SELECT symbol, coin_category, score, confidence, direction, strategies, reasoning,
-			       price_at_recommendation, leverage_suggested, technical_snapshot, created_at
-			FROM recommendations
-			WHERE strategies LIKE ?
-			  AND generation_id = (
-			    SELECT MAX(generation_id)
-			    FROM recommendations
-			    WHERE strategies LIKE ?
-			  )
-			ORDER BY created_at DESC
-			LIMIT ?
-		`
-		
-		strategyPattern := "%\"" + strategy + "\"%"
-		rows, err := s.database.Query(query, strategyPattern, strategyPattern, body.Limit*2)
-		if err != nil {
-			continue
-		}
-		
 		majorCount := 0
 		altcoinCount := 0
-		
-		// Track seen symbols to deduplicate (keep only latest per symbol)
 		seenSymbols := make(map[string]bool)
 		
 		strategyRecs[strategy] = recommender.StrategyRecommendations{
@@ -2545,90 +2605,68 @@ func (s *Server) handleRefreshRecommendations(c *gin.Context) {
 			Altcoins:   []recommender.Recommendation{},
 		}
 		
-		for rows.Next() {
-			var symbol, coinCategory, direction, strategiesJSON, reasoning, technicalSnapshot string
-			var score float64
-			var confidence, leverageSuggested int
-			var priceAtRec float64
-			var createdAt time.Time
-			
-			err := rows.Scan(&symbol, &coinCategory, &score, &confidence, &direction, &strategiesJSON,
-				&reasoning, &priceAtRec, &leverageSuggested, &technicalSnapshot, &createdAt)
-			if err != nil {
-				continue
-			}
-			
-			// Skip if we've already seen this symbol (deduplication - keep only latest)
-			if seenSymbols[symbol] {
-				continue
-			}
-			
-			// Parse strategies JSON to verify it matches
-			var strategiesList []string
-			if err := json.Unmarshal([]byte(strategiesJSON), &strategiesList); err != nil {
+		// Filter recommendations by strategy and latest generation_id
+		for _, storedRec := range data.Recommendations {
+			// Only include recommendations from the latest generation
+			if storedRec.GenerationID != latestGenID {
 				continue
 			}
 			
 			// Check if this recommendation belongs to the requested strategy
-			found := false
-			for _, s := range strategiesList {
-				if s == strategy {
-					found = true
-					break
-				}
-			}
-			if !found {
+			if storedRec.Strategy != strategy {
 				continue
 			}
 			
-			// Parse technical snapshot to get BTC status
-			var technicalData recommender.TechnicalSnapshot
-			if err := json.Unmarshal([]byte(technicalSnapshot), &technicalData); err == nil {
-				if btcStatus == "" && technicalData.BTCDirection != "" {
-					btcStatus = technicalData.BTCDirection
-				}
+			// Skip if we've already seen this symbol (deduplication - keep only latest)
+			if seenSymbols[storedRec.Symbol] {
+				continue
+			}
+			
+			// Get BTC status from technical data
+			if btcStatus == "" && storedRec.TechnicalData.BTCDirection != "" {
+				btcStatus = storedRec.TechnicalData.BTCDirection
 			}
 			
 			// Track latest created_at
-			if createdAt.After(maxCreatedAt) {
-				maxCreatedAt = createdAt
+			if storedRec.CreatedAt.After(maxCreatedAt) {
+				maxCreatedAt = storedRec.CreatedAt
 			}
 			
-			// Create recommendation object
+			// Convert StoredRecommendation to Recommendation
 			rec := recommender.Recommendation{
-				Symbol:            symbol,
-				Category:          recommender.CoinCategory(coinCategory),
-				Score:             score,
-				Confidence:        confidence,
-				Direction:         direction,
-				Strategy:          strategy,
-				Reasoning:         reasoning,
-				CurrentPrice:      priceAtRec,
-				SuggestedLeverage: leverageSuggested,
-				TechnicalData:     technicalData,
-				CreatedAt:         createdAt,
+				Symbol:            storedRec.Symbol,
+				Category:          storedRec.Category,
+				Score:             storedRec.Score,
+				Confidence:        storedRec.Confidence,
+				Direction:         storedRec.Direction,
+				Strategy:          storedRec.Strategy,
+				Reasoning:         storedRec.Reasoning,
+				CurrentPrice:      storedRec.CurrentPrice,
+				SuggestedLeverage: storedRec.SuggestedLeverage,
+				TechnicalData:     storedRec.TechnicalData,
+				CreatedAt:         storedRec.CreatedAt,
 			}
 			
 			// Add to appropriate category with limit
-			// Retrieve struct from map, modify it, and put it back
+			// Note: Major coins are limited to min(5, limit) to match the recommendation engine
+			majorLimit := min(5, body.Limit)
 			strategyRec := strategyRecs[strategy]
-			if coinCategory == "major" && majorCount < body.Limit {
+			if storedRec.Category == recommender.CategoryMajor && majorCount < majorLimit {
 				strategyRec.MajorCoins = append(strategyRec.MajorCoins, rec)
 				majorCount++
-				seenSymbols[symbol] = true
-			} else if coinCategory == "altcoin" && altcoinCount < body.Limit {
+				seenSymbols[storedRec.Symbol] = true
+			} else if storedRec.Category == recommender.CategoryAltcoin && altcoinCount < body.Limit {
 				strategyRec.Altcoins = append(strategyRec.Altcoins, rec)
 				altcoinCount++
-				seenSymbols[symbol] = true
+				seenSymbols[storedRec.Symbol] = true
 			}
 			strategyRecs[strategy] = strategyRec
 			
 			// Stop if we have enough recommendations for this strategy
-			if majorCount >= body.Limit && altcoinCount >= body.Limit {
+			if majorCount >= majorLimit && altcoinCount >= body.Limit {
 				break
 			}
 		}
-		rows.Close()
 	}
 	
 	// If no BTC status found, use default
@@ -2659,7 +2697,7 @@ func (s *Server) handleRefreshRecommendations(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// handleCalculateRecommendations 手动计算推荐（生成并保存到数据库）
+// handleCalculateRecommendations 手动计算推荐（生成并保存到JSON文件）
 func (s *Server) handleCalculateRecommendations(c *gin.Context) {
 	// Get strategy from query param or body
 	strategy := c.Query("strategy")
@@ -2703,51 +2741,50 @@ func (s *Server) handleCalculateRecommendations(c *gin.Context) {
 		return
 	}
 	
+	// Try to acquire lock (use same directory as recommendations file)
+	lockPath := strings.TrimSuffix(s.recommendationsDataPath, ".json") + ".lock"
+	lock, err := recommender.AcquireLockFile(lockPath)
+	if err != nil {
+		log.Printf("Failed to acquire lock for manual calculation: %v", err)
+		// Still return the response even if we can't save
+		c.JSON(http.StatusOK, response)
+		return
+	}
+	defer lock.Release()
+	
 	// Generate a unique generation_id for this run
 	generationID := time.Now().Format(time.RFC3339Nano)
 	
-	// Save recommendations to database
-	for strategyName, strategyRecs := range response.Strategies {
-		// Save major coins for this strategy
+	// Load existing recommendations
+	data, err := recommender.LoadRecommendations(s.recommendationsDataPath)
+	if err != nil {
+		log.Printf("Failed to load existing recommendations: %v", err)
+		// Still return the response even if we can't save
+		c.JSON(http.StatusOK, response)
+		return
+	}
+	
+	// Convert and add new recommendations
+	for _, strategyRecs := range response.Strategies {
+		// Add major coins for this strategy
 		for _, rec := range strategyRecs.MajorCoins {
-			if err := s.saveRecommendationToDB(&rec, generationID); err != nil {
-				log.Printf("ERROR: Failed to save major coin recommendation for %s [%s]: %v", rec.Symbol, strategyName, err)
-			}
+			storedRec := recommender.ConvertRecommendationToStored(&rec, generationID)
+			data.Recommendations = append(data.Recommendations, storedRec)
 		}
 		
-		// Save altcoins for this strategy
+		// Add altcoins for this strategy
 		for _, rec := range strategyRecs.Altcoins {
-			if err := s.saveRecommendationToDB(&rec, generationID); err != nil {
-				log.Printf("ERROR: Failed to save altcoin recommendation for %s [%s]: %v", rec.Symbol, strategyName, err)
-			}
+			storedRec := recommender.ConvertRecommendationToStored(&rec, generationID)
+			data.Recommendations = append(data.Recommendations, storedRec)
 		}
+	}
+	
+	// Save to JSON file
+	if err := recommender.SaveRecommendations(s.recommendationsDataPath, data); err != nil {
+		log.Printf("ERROR: Failed to save recommendations: %v", err)
 	}
 	
 	c.JSON(http.StatusOK, response)
-}
-
-// saveRecommendationToDB saves a recommendation to the database (helper method)
-func (s *Server) saveRecommendationToDB(rec *recommender.Recommendation, generationID string) error {
-	// Convert single strategy to array for database storage (backward compatibility)
-	strategiesJSON, err := json.Marshal([]string{rec.Strategy})
-	if err != nil {
-		return fmt.Errorf("failed to marshal strategy for %s: %w", rec.Symbol, err)
-	}
-	technicalJSON, err := json.Marshal(rec.TechnicalData)
-	if err != nil {
-		return fmt.Errorf("failed to marshal technical data for %s: %w", rec.Symbol, err)
-	}
-	
-	_, err = s.database.Exec(`
-		INSERT INTO recommendations 
-		(symbol, coin_category, score, confidence, direction, strategies, reasoning, 
-		 price_at_recommendation, leverage_suggested, technical_snapshot, generation_id, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, rec.Symbol, rec.Category, rec.Score, rec.Confidence, rec.Direction,
-		string(strategiesJSON), rec.Reasoning, rec.CurrentPrice, rec.SuggestedLeverage,
-		string(technicalJSON), generationID, rec.CreatedAt)
-	
-	return err
 }
 
 // handleGetPublicTraderConfig 获取公开的交易员配置信息（无需认证，不包含敏感信息）

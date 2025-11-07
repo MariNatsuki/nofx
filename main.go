@@ -19,7 +19,33 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"path/filepath"
 )
+
+// getDataDirectory determines the data directory based on the database path
+// Returns the directory where all data files (database, recommendations, etc.) should be stored
+func getDataDirectory(dbPath string) string {
+	// If using Railway volume mount path, use /app/data
+	if dbPath == "/app/data/config.db" || strings.HasPrefix(dbPath, "/app/data/") {
+		return "/app/data"
+	}
+
+	// Extract directory from dbPath
+	dir := filepath.Dir(dbPath)
+	if dir == "." || dir == "" {
+		// If no directory specified, default to "data"
+		return "data"
+	}
+
+	// Ensure the directory exists
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		log.Printf("⚠️  无法创建数据目录 %s: %v", dir, err)
+		// Fallback to "data" if creation fails
+		return "data"
+	}
+
+	return dir
+}
 
 // LeverageConfig 杠杆配置
 type LeverageConfig struct {
@@ -186,6 +212,9 @@ func main() {
 			log.Printf("⚠️  创建数据目录失败: %v", err)
 		}
 	}
+
+	// Get unified data directory for all data files
+	dataDir := getDataDirectory(dbPath)
 
 	// Safety check: ensure database path is not a directory
 	if stat, err := os.Stat(dbPath); err == nil {
@@ -366,7 +395,8 @@ func main() {
 	}
 
 	// 创建并启动API服务器
-	apiServer := api.NewServer(traderManager, database, apiPort)
+	recommendationsDataPath := filepath.Join(dataDir, "recommendations.json")
+	apiServer := api.NewServer(traderManager, database, apiPort, recommendationsDataPath)
 	go func() {
 		if err := apiServer.Start(); err != nil {
 			log.Printf("❌ API服务器错误: %v", err)
@@ -409,7 +439,11 @@ func main() {
 		}
 	}
 	
-	recommendationService := recommender.NewRecommendationService(database, defaultStrategies, btcETHLeverage, altcoinLeverage, refreshInterval)
+	// Use the unified data directory determined from database path
+	dataPath := filepath.Join(dataDir, "recommendations.json")
+	lockPath := filepath.Join(dataDir, "recommendations.lock")
+	
+	recommendationService := recommender.NewRecommendationService(dataPath, lockPath, defaultStrategies, btcETHLeverage, altcoinLeverage, refreshInterval)
 	go recommendationService.Start()
 	log.Printf("✓ 推荐服务已启动（每 %v 更新一次）", refreshInterval)
 

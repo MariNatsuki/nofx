@@ -425,6 +425,20 @@ func (tm *TraderManager) GetTraderIDs() []string {
 	return ids
 }
 
+// GetTraderIDsForUser 获取指定用户的trader ID列表（安全过滤）
+func (tm *TraderManager) GetTraderIDsForUser(userID string) []string {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	ids := make([]string, 0)
+	for id := range tm.traders {
+		if isUserTrader(id, userID) {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
 // StartAll 启动所有trader
 func (tm *TraderManager) StartAll() {
 	tm.mu.RLock()
