@@ -223,6 +223,25 @@ func (d *Database) createTables() error {
 		}
 	}
 
+	// Migration: Add generation_id column to existing recommendations table if it doesn't exist
+	// This must run BEFORE creating indexes on this column
+	// SQLite doesn't support IF NOT EXISTS for ALTER TABLE ADD COLUMN, so we check first
+	var tableExists int
+	checkTableQuery := `SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='recommendations'`
+	if err := d.db.QueryRow(checkTableQuery).Scan(&tableExists); err == nil && tableExists > 0 {
+		// Table exists, check if column exists
+		var columnExists int
+		checkColumnQuery := `SELECT COUNT(*) FROM pragma_table_info('recommendations') WHERE name='generation_id'`
+		if err := d.db.QueryRow(checkColumnQuery).Scan(&columnExists); err == nil && columnExists == 0 {
+			if _, err := d.db.Exec(`ALTER TABLE recommendations ADD COLUMN generation_id TEXT NOT NULL DEFAULT ''`); err != nil {
+				// If column already exists, ignore the error
+				log.Printf("Note: Could not add generation_id column (may already exist): %v", err)
+			} else {
+				log.Printf("✓ Added generation_id column to existing recommendations table")
+			}
+		}
+	}
+
 	// Create indexes for recommendations tables
 	indexQueries := []string{
 		`CREATE INDEX IF NOT EXISTS idx_recommendations_created_at ON recommendations(created_at)`,
@@ -234,17 +253,6 @@ func (d *Database) createTables() error {
 	for _, query := range indexQueries {
 		if _, err := d.db.Exec(query); err != nil {
 			return fmt.Errorf("创建推荐表索引失败 [%s]: %w", query, err)
-		}
-	}
-
-	// Migration: Add generation_id column to existing recommendations table if it doesn't exist
-	// SQLite doesn't support IF NOT EXISTS for ALTER TABLE ADD COLUMN, so we check first
-	var columnExists int
-	checkColumnQuery := `SELECT COUNT(*) FROM pragma_table_info('recommendations') WHERE name='generation_id'`
-	if err := d.db.QueryRow(checkColumnQuery).Scan(&columnExists); err == nil && columnExists == 0 {
-		if _, err := d.db.Exec(`ALTER TABLE recommendations ADD COLUMN generation_id TEXT NOT NULL DEFAULT ''`); err != nil {
-			// If column already exists or table doesn't exist, ignore the error
-			log.Printf("Note: Could not add generation_id column (may already exist): %v", err)
 		}
 	}
 
