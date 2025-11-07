@@ -26,7 +26,11 @@ import type {
   DecisionRecord,
   Statistics,
   TraderInfo,
+  CreateTraderRequest,
+  AIModel,
+  Exchange,
 } from './types'
+import { TraderConfigModal } from './components/TraderConfigModal'
 
 type Page =
   | 'competition'
@@ -602,6 +606,114 @@ function TraderDetailsPage({
   language: Language
   mutateTraders?: () => Promise<TraderInfo[] | undefined>
 }) {
+  const { user, token } = useAuth()
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingTrader, setEditingTrader] = useState<any>(null)
+  const [allModels, setAllModels] = useState<AIModel[]>([])
+  const [allExchanges, setAllExchanges] = useState<Exchange[]>([])
+
+  // Load model and exchange configs
+  useEffect(() => {
+    if (!user || !token) return
+
+    const loadConfigs = async () => {
+      try {
+        const [modelConfigs, exchangeConfigs] = await Promise.all([
+          api.getModelConfigs(),
+          api.getExchangeConfigs(),
+        ])
+        setAllModels(modelConfigs)
+        setAllExchanges(exchangeConfigs)
+      } catch (error) {
+        console.error('Failed to load configs:', error)
+      }
+    }
+    loadConfigs()
+  }, [user, token])
+
+  // Filter enabled models and exchanges
+  const enabledModels = allModels?.filter((m) => m.enabled && m.apiKey) || []
+  const enabledExchanges =
+    allExchanges?.filter((e) => {
+      if (!e.enabled) return false
+      if (e.id === 'aster') {
+        return e.asterUser && e.asterUser.trim() !== ''
+      }
+      if (e.id === 'hyperliquid') {
+        return e.apiKey && e.apiKey.trim() !== ''
+      }
+      return e.apiKey && e.apiKey.trim() !== ''
+    }) || []
+
+  // Handle edit trader
+  const handleEditTrader = async (traderId: string) => {
+    try {
+      const traderConfig = await api.getTraderConfig(traderId)
+      setEditingTrader(traderConfig)
+      setShowEditModal(true)
+    } catch (error) {
+      console.error('Failed to fetch trader config:', error)
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      alert(
+        translateError(errorMessage, language) ||
+          t('errorGetTraderConfigFailed', language)
+      )
+    }
+  }
+
+  // Handle save edit trader
+  const handleSaveEditTrader = async (data: CreateTraderRequest) => {
+    if (!editingTrader) return
+
+    try {
+      const model = enabledModels?.find((m) => m.id === data.ai_model_id)
+      const exchange = enabledExchanges?.find((e) => e.id === data.exchange_id)
+
+      if (!model) {
+        alert(t('modelConfigNotExist', language))
+        return
+      }
+
+      if (!exchange) {
+        alert(t('exchangeConfigNotExist', language))
+        return
+      }
+
+      const request = {
+        name: data.name,
+        ai_model_id: data.ai_model_id,
+        exchange_id: data.exchange_id,
+        initial_balance: data.initial_balance,
+        scan_interval_minutes: data.scan_interval_minutes,
+        btc_eth_leverage: data.btc_eth_leverage,
+        altcoin_leverage: data.altcoin_leverage,
+        trading_symbols: data.trading_symbols,
+        custom_prompt: data.custom_prompt,
+        override_base_prompt: data.override_base_prompt,
+        system_prompt_template: data.system_prompt_template,
+        is_cross_margin: data.is_cross_margin,
+        use_coin_pool: data.use_coin_pool,
+        use_oi_top: data.use_oi_top,
+      }
+
+      await api.updateTrader(editingTrader.trader_id, request)
+      setShowEditModal(false)
+      setEditingTrader(null)
+      if (mutateTraders) {
+        await mutateTraders()
+      }
+    } catch (error) {
+      console.error('Failed to update trader:', error)
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      alert(
+        translateError(errorMessage, language) ||
+          t('errorUpdateTraderFailed', language)
+      )
+    }
+  }
+
   // Handle toggle trader start/stop
   const handleToggleTrader = async (traderId: string, running: boolean) => {
     try {
@@ -723,6 +835,20 @@ function TraderDetailsPage({
                 {selectedTrader.is_running
                   ? t('stop', language)
                   : t('start', language)}
+              </button>
+              {/* Edit Button */}
+              <button
+                onClick={() => handleEditTrader(selectedTrader.trader_id)}
+                disabled={selectedTrader.is_running}
+                className="px-3 py-1.5 rounded text-xs font-semibold transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                style={{
+                  background: selectedTrader.is_running
+                    ? 'rgba(132, 142, 156, 0.1)'
+                    : 'rgba(255, 193, 7, 0.1)',
+                  color: selectedTrader.is_running ? '#848E9C' : '#FFC107',
+                }}
+              >
+                ✏️ {t('edit', language)}
               </button>
             </div>
 
@@ -1059,6 +1185,22 @@ function TraderDetailsPage({
       <div className="mb-6 animate-slide-in" style={{ animationDelay: '0.3s' }}>
         <AILearning traderId={selectedTrader.trader_id} />
       </div>
+
+      {/* Edit Trader Modal */}
+      {showEditModal && editingTrader && (
+        <TraderConfigModal
+          isOpen={showEditModal}
+          isEditMode={true}
+          traderData={editingTrader}
+          availableModels={enabledModels}
+          availableExchanges={enabledExchanges}
+          onSave={handleSaveEditTrader}
+          onClose={() => {
+            setShowEditModal(false)
+            setEditingTrader(null)
+          }}
+        />
+      )}
     </div>
   )
 }
