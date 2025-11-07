@@ -130,7 +130,7 @@ export default function RecommendationCard({
               border: '1px solid #2B3139',
             }}
           >
-            {recommendation.reasoning}
+            {recommendation.reasoning?.replace(/\s+\|\s+/g, '\n')}
           </div>
         )}
       </div>
