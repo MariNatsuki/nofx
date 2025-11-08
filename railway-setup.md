@@ -47,22 +47,55 @@ Add these environment variables in Railway dashboard:
 - `BETA_MODE`: Set to `true` to enable beta mode (default: `false`)
 - `DB_PATH`: Custom database path (default: `/app/data/config.db`)
 - `TZ`: Timezone (e.g., `UTC`, `America/New_York`)
+- `DATA_ENCRYPTION_KEY`: Data encryption key for database encryption (required for encryption features)
+  - Generate with: `openssl rand -base64 32`
+  - If not set, encryption features will fail
 
 **Note**: `PORT` is automatically set by Railway - do not set it manually.
 
 ### Create Railway Volume for Backend
 
+Railway allows one volume per service. We'll mount a single volume at `/app/data` to persist both data and secrets (secrets are stored in `/app/data/secrets` with a symlink for compatibility).
+
 1. In the backend service, go to "Volumes" tab
 2. Click "Add Volume"
 3. Configure:
-   - **Name**: `nofx-data` (or your preferred name)
+   - **Name**: `nofx-storage` (or your preferred name)
    - **Mount Path**: `/app/data`
    - **Size**: Start with 1GB (can be increased later)
 
-This volume will persist:
+This single volume will persist both:
+
+**Data directory** (`/app/data/`):
 - `config.db` (SQLite database)
 - `decision_logs/` (AI decision logs)
 - `beta_codes.txt` (if used)
+- `secrets/` (RSA keys directory)
+
+**Secrets directory** (`/app/secrets/`):
+- Symlinked to `/app/data/secrets/` for code compatibility
+- `rsa_key` (RSA private key for encryption)
+- `rsa_key.pub` (RSA public key)
+
+**Important**:
+- RSA keys are auto-generated on first run if they don't exist
+- The volume ensures keys persist across deployments
+- Without this volume, new keys will be generated on each deployment, which will break decryption of existing encrypted data
+- The Dockerfile creates a symlink from `/app/secrets` to `/app/data/secrets` so the code can use the expected path
+
+### Files Included in Docker Image
+
+The following files/directories are included in the Docker image and don't require volume mounts:
+
+- **prompts/**: AI prompt templates directory (copied during Docker build)
+  - Contains template files like `default.txt`, `Hansen.txt`, etc.
+  - Available at `/app/prompts` in the container
+
+### Optional Files
+
+- **config.json**: Optional configuration file
+  - If you need to use `config.json`, you can mount it as a volume or include it in the Docker image
+  - The application will use defaults if `config.json` is not present
 
 ## Step 3: Create Frontend Service
 
@@ -143,7 +176,7 @@ The frontend will automatically proxy API requests to the backend.
 ### Backend Issues
 
 **Database not persisting**:
-- Verify Railway Volume is mounted at `/app/data`
+- Verify Railway Volume is mounted at `/app/data` (contains both data files and secrets subdirectory)
 - Check volume is attached to backend service
 - Verify database file exists: Check logs for database path
 
@@ -179,6 +212,20 @@ The frontend will automatically proxy API requests to the backend.
 - Verify environment variables are set
 - Check health check endpoints
 
+**Missing prompts directory**:
+- Verify `prompts/` directory exists in your repository
+- Check that `.railwayignore` doesn't exclude `prompts/`
+- Prompts should be copied during Docker build (check build logs)
+- If missing, the application may fail to load prompt templates
+
+**RSA key errors or encryption failures**:
+- Verify `/app/data` volume is mounted (secrets are stored in `/app/data/secrets/`)
+- Check that `secrets/` directory has proper permissions (should be 700)
+- Verify the symlink from `/app/secrets` to `/app/data/secrets` exists
+- RSA keys are auto-generated on first run if missing
+- If keys are regenerated, existing encrypted data cannot be decrypted
+- Ensure `DATA_ENCRYPTION_KEY` environment variable is set
+
 ## Environment Variable Reference
 
 ### Backend Service
@@ -187,10 +234,13 @@ The frontend will automatically proxy API requests to the backend.
 |----------|----------|---------|-------------|
 | `PORT` | Auto | `8080` | Railway automatically sets this |
 | `JWT_SECRET` | Yes | - | JWT secret key for authentication |
+| `DATA_ENCRYPTION_KEY` | Yes* | - | Data encryption key (required for encryption features) |
 | `ADMIN_MODE` | No | `true` | Enable admin mode (no login required) |
 | `BETA_MODE` | No | `false` | Enable beta mode (requires beta codes) |
 | `DB_PATH` | No | `/app/data/config.db` | SQLite database path |
 | `TZ` | No | `UTC` | Timezone |
+
+\* Required if using encryption features (API key encryption, etc.)
 
 ### Frontend Service
 
@@ -201,15 +251,32 @@ The frontend will automatically proxy API requests to the backend.
 
 ## Data Persistence
 
-The Railway Volume mounted at `/app/data` persists:
+Railway provides persistent storage via a single volume mounted at `/app/data`. The following data is persisted:
 
+### Volume: `/app/data` (single volume for all persistent data)
+
+**Data directory** (`/app/data/`):
 - **config.db**: SQLite database with all configurations
 - **decision_logs/**: AI trading decision logs
 - **beta_codes.txt**: Beta access codes (if used)
+- **secrets/**: RSA keys directory (stored here, symlinked to `/app/secrets` for compatibility)
 
-**Important**: Volume data persists across deployments. To reset:
+**Secrets directory** (`/app/secrets/`):
+- Symlinked to `/app/data/secrets/`
+- **rsa_key**: RSA private key for data encryption (auto-generated on first run)
+- **rsa_key.pub**: RSA public key (auto-generated on first run)
+
+**Important Notes**:
+- Volume data persists across deployments
+- RSA keys are critical - if lost, encrypted data cannot be decrypted
+- Never delete the volume unless you want to regenerate keys (this will break decryption of existing data)
+- The `prompts/` directory is included in the Docker image and doesn't need a volume
+- Railway allows only one volume per service, so both data and secrets are stored in the same volume at `/app/data`
+- The Dockerfile creates a symlink so code expecting `/app/secrets` continues to work
+
+**To reset volumes** (⚠️ destroys all data):
 1. Detach volume in Railway dashboard
-2. Delete volume (⚠️ destroys all data)
+2. Delete volume
 3. Create new volume and attach
 
 ## Scaling
