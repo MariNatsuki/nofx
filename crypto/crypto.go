@@ -84,8 +84,29 @@ func GenerateRSAKeyPair(privateKeyPath string) error {
 	// 确保目录存在
 	dir := filepath.Dir(privateKeyPath)
 	if dir != "." {
-		if err := os.MkdirAll(dir, 0700); err != nil {
-			return fmt.Errorf("failed to create directory %s: %w", dir, err)
+		// Check if directory already exists (including symlinks)
+		if info, err := os.Lstat(dir); err == nil {
+			// Path exists - check if it's a directory or valid symlink
+			if info.IsDir() {
+				// It's a regular directory, proceed
+			} else if info.Mode()&os.ModeSymlink != 0 {
+				// It's a symlink, verify the target is a directory
+				if targetInfo, err := os.Stat(dir); err != nil {
+					return fmt.Errorf("symlink %s target is not accessible: %w", dir, err)
+				} else if !targetInfo.IsDir() {
+					return fmt.Errorf("symlink %s target is not a directory", dir)
+				}
+				// Symlink points to a valid directory, proceed
+			} else {
+				return fmt.Errorf("path %s exists but is not a directory or symlink", dir)
+			}
+		} else if os.IsNotExist(err) {
+			// Directory doesn't exist, create it
+			if err := os.MkdirAll(dir, 0700); err != nil {
+				return fmt.Errorf("failed to create directory %s: %w", dir, err)
+			}
+		} else {
+			return fmt.Errorf("failed to check directory %s: %w", dir, err)
 		}
 	}
 
