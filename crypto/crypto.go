@@ -92,7 +92,16 @@ func GenerateRSAKeyPair(privateKeyPath string) error {
 			} else if info.Mode()&os.ModeSymlink != 0 {
 				// It's a symlink, verify the target is a directory
 				if targetInfo, err := os.Stat(dir); err != nil {
-					return fmt.Errorf("symlink %s target is not accessible: %w", dir, err)
+					// Symlink target doesn't exist, create it
+					// Get the symlink target path
+					targetPath, err := os.Readlink(dir)
+					if err != nil {
+						return fmt.Errorf("failed to read symlink %s: %w", dir, err)
+					}
+					// Create the target directory
+					if err := os.MkdirAll(targetPath, 0700); err != nil {
+						return fmt.Errorf("failed to create symlink target directory %s: %w", targetPath, err)
+					}
 				} else if !targetInfo.IsDir() {
 					return fmt.Errorf("symlink %s target is not a directory", dir)
 				}
