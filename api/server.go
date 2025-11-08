@@ -392,8 +392,8 @@ type SafeModelConfig struct {
 	Name            string `json:"name"`
 	Provider        string `json:"provider"`
 	Enabled         bool   `json:"enabled"`
-	CustomAPIURL    string `json:"customApiUrl"`        // 自定义API URL（通常不敏感）
-	CustomModelName string `json:"customModelName"`     // 自定义模型名（不敏感）
+	CustomAPIURL    string `json:"customApiUrl"`    // 自定义API URL（通常不敏感）
+	CustomModelName string `json:"customModelName"` // 自定义模型名（不敏感）
 }
 
 type ExchangeConfig struct {
@@ -414,8 +414,8 @@ type SafeExchangeConfig struct {
 	Enabled               bool   `json:"enabled"`
 	Testnet               bool   `json:"testnet,omitempty"`
 	HyperliquidWalletAddr string `json:"hyperliquidWalletAddr"` // Hyperliquid钱包地址（不敏感）
-	AsterUser             string `json:"asterUser"`              // Aster用户名（不敏感）
-	AsterSigner           string `json:"asterSigner"`            // Aster签名者（不敏感）
+	AsterUser             string `json:"asterUser"`             // Aster用户名（不敏感）
+	AsterSigner           string `json:"asterSigner"`           // Aster签名者（不敏感）
 }
 
 type UpdateModelConfigRequest struct {
@@ -630,17 +630,18 @@ func (s *Server) handleCreateTrader(c *gin.Context) {
 
 // UpdateTraderRequest 更新交易员请求
 type UpdateTraderRequest struct {
-	Name                string  `json:"name" binding:"required"`
-	AIModelID           string  `json:"ai_model_id" binding:"required"`
-	ExchangeID          string  `json:"exchange_id" binding:"required"`
-	InitialBalance      float64 `json:"initial_balance"`
-	ScanIntervalMinutes int     `json:"scan_interval_minutes"`
-	BTCETHLeverage      int     `json:"btc_eth_leverage"`
-	AltcoinLeverage     int     `json:"altcoin_leverage"`
-	TradingSymbols      string  `json:"trading_symbols"`
-	CustomPrompt        string  `json:"custom_prompt"`
-	OverrideBasePrompt  bool    `json:"override_base_prompt"`
-	IsCrossMargin       *bool   `json:"is_cross_margin"`
+	Name                 string  `json:"name" binding:"required"`
+	AIModelID            string  `json:"ai_model_id" binding:"required"`
+	ExchangeID           string  `json:"exchange_id" binding:"required"`
+	InitialBalance       float64 `json:"initial_balance"`
+	ScanIntervalMinutes  int     `json:"scan_interval_minutes"`
+	BTCETHLeverage       int     `json:"btc_eth_leverage"`
+	AltcoinLeverage      int     `json:"altcoin_leverage"`
+	TradingSymbols       string  `json:"trading_symbols"`
+	CustomPrompt         string  `json:"custom_prompt"`
+	OverrideBasePrompt   bool    `json:"override_base_prompt"`
+	SystemPromptTemplate string  `json:"system_prompt_template"`
+	IsCrossMargin        *bool   `json:"is_cross_margin"`
 }
 
 // handleUpdateTrader 更新交易员配置
@@ -698,6 +699,12 @@ func (s *Server) handleUpdateTrader(c *gin.Context) {
 		scanIntervalMinutes = 3
 	}
 
+	// 设置系统提示词模板
+	systemPromptTemplate := existingTrader.SystemPromptTemplate // 保持原值
+	if req.SystemPromptTemplate != "" {
+		systemPromptTemplate = req.SystemPromptTemplate
+	}
+
 	// 更新交易员配置
 	trader := &config.TraderRecord{
 		ID:                   traderID,
@@ -711,7 +718,7 @@ func (s *Server) handleUpdateTrader(c *gin.Context) {
 		TradingSymbols:       req.TradingSymbols,
 		CustomPrompt:         req.CustomPrompt,
 		OverrideBasePrompt:   req.OverrideBasePrompt,
-		SystemPromptTemplate: existingTrader.SystemPromptTemplate, // 保持原值
+		SystemPromptTemplate: systemPromptTemplate,
 		IsCrossMargin:        isCrossMargin,
 		ScanIntervalMinutes:  scanIntervalMinutes,
 		IsRunning:            existingTrader.IsRunning, // 保持原值
@@ -1637,7 +1644,6 @@ func (s *Server) authMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
-
 
 // handleLogout 将当前token加入黑名单
 func (s *Server) handleLogout(c *gin.Context) {
