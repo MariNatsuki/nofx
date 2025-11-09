@@ -401,6 +401,29 @@ func (tm *TraderManager) GetTrader(id string) (*trader.AutoTrader, error) {
 	return t, nil
 }
 
+// RemoveTrader 移除指定ID的trader（如果正在运行则先停止）
+func (tm *TraderManager) RemoveTrader(id string) error {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
+	t, exists := tm.traders[id]
+	if !exists {
+		return fmt.Errorf("trader ID '%s' 不存在", id)
+	}
+
+	// 如果交易员正在运行，先停止它
+	status := t.GetStatus()
+	if isRunning, ok := status["is_running"].(bool); ok && isRunning {
+		log.Printf("⏹  停止运行中的交易员: %s", id)
+		t.Stop()
+	}
+
+	// 从map中移除
+	delete(tm.traders, id)
+	log.Printf("✓ 交易员 %s 已从内存中移除", id)
+	return nil
+}
+
 // GetAllTraders 获取所有trader
 func (tm *TraderManager) GetAllTraders() map[string]*trader.AutoTrader {
 	tm.mu.RLock()

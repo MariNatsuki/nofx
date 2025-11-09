@@ -743,6 +743,28 @@ func (s *Server) handleUpdateTrader(c *gin.Context) {
 		return
 	}
 
+	// 如果交易员已经在内存中，先移除它（这样LoadUserTraders会重新加载新配置）
+	if existingTraderInstance, err := s.traderManager.GetTrader(traderID); err == nil {
+		// 检查交易员是否正在运行
+		status := existingTraderInstance.GetStatus()
+		wasRunning := false
+		if isRunning, ok := status["is_running"].(bool); ok && isRunning {
+			wasRunning = true
+		}
+
+		// 交易员存在，移除它（如果正在运行会先停止）
+		if err := s.traderManager.RemoveTrader(traderID); err != nil {
+			log.Printf("⚠️ 移除交易员 %s 失败: %v", traderID, err)
+			// 继续执行，尝试重新加载
+		} else if wasRunning {
+			// 如果交易员之前正在运行，更新数据库状态为停止
+			// 因为我们在更新过程中停止了它，它不会自动重启
+			if err := s.database.UpdateTraderStatus(userID, traderID, false); err != nil {
+				log.Printf("⚠️ 更新交易员运行状态失败: %v", err)
+			}
+		}
+	}
+
 	// 重新加载交易员到内存
 	err = s.traderManager.LoadUserTraders(s.database, userID)
 	if err != nil {
